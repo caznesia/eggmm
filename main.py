@@ -244,6 +244,7 @@ async def get_gas_balance(address, currency):
     try:
         if currency == "usdt_bep20":
             for rpc in BEP20_RPC_URLS:
+                w3 = None
                 try:
                     w3 = AsyncWeb3(AsyncHTTPProvider(rpc, request_kwargs={"timeout": 5}))
                     if not await w3.is_connected(): continue
@@ -251,8 +252,13 @@ async def get_gas_balance(address, currency):
                     return float(w3.from_wei(bal, 'ether'))
                 except:
                     continue
+                finally:
+                    if w3 is not None:
+                        try: await w3.provider.session.close()
+                        except: pass
         elif currency == "usdt_polygon":
             for rpc in POLYGON_RPC_URLS:
+                w3 = None
                 try:
                     w3 = AsyncWeb3(AsyncHTTPProvider(rpc, request_kwargs={"timeout": 5}))
                     if not await w3.is_connected(): continue
@@ -260,8 +266,14 @@ async def get_gas_balance(address, currency):
                     return float(w3.from_wei(bal, 'ether'))
                 except:
                     continue
+                finally:
+                    if w3 is not None:
+                        try: await w3.provider.session.close()
+                        except: pass
     except Exception as e:
         logger.error(f"Gas balance error: {e}")
+
+    return 0.0
 
 
 
@@ -542,11 +554,16 @@ async def get_eth_block_number():
     """Get current ETH block number from multiple RPCs using AsyncWeb3"""
     from web3 import AsyncWeb3, AsyncHTTPProvider
     async def fetch_block(rpc_url):
+        w3 = None
         try:
             w3 = AsyncWeb3(AsyncHTTPProvider(rpc_url, request_kwargs={"timeout": 5}))
             return await w3.eth.block_number
         except:
             return None
+        finally:
+            if w3 is not None:
+                try: await w3.provider.session.close()
+                except: pass
     tasks = [fetch_block(url) for url in ETH_RPC_URLS]
     results = await asyncio.gather(*tasks)
     valid = [r for r in results if r is not None]
@@ -785,6 +802,7 @@ async def estimate_required_gas(contract_address, private_key, to_address, amoun
     amount_wei = int(amount * (10 ** decimals))
 
     for rpc in rpc_urls:
+        w3 = None
         try:
             w3 = AsyncWeb3(AsyncHTTPProvider(rpc, request_kwargs={"timeout": 5}))
             if not await w3.is_connected():
@@ -813,6 +831,10 @@ async def estimate_required_gas(contract_address, private_key, to_address, amoun
         except Exception as e:
             logger.error(f"Gas estimation failed on RPC: {rpc} {e}")
             continue
+        finally:
+            if w3 is not None:
+                try: await w3.provider.session.close()
+                except: pass
 
     return None
 
@@ -1074,6 +1096,7 @@ async def check_gas_paid(currency, address, rpc_urls):
     """Check if address has enough gas for transactions using AsyncWeb3"""
     from web3 import AsyncWeb3, AsyncHTTPProvider
     for url in rpc_urls:
+        w3 = None
         try:
             w3 = AsyncWeb3(AsyncHTTPProvider(url, request_kwargs={"timeout": 5}))
             if not await w3.is_connected():
@@ -1081,21 +1104,17 @@ async def check_gas_paid(currency, address, rpc_urls):
             bal_wei = await w3.eth.get_balance(AsyncWeb3.to_checksum_address(address))
             bal = bal_wei / 1e18
 
-
-
             required_gas, _ = get_required_gas(currency)
 
-
-
             if bal >= required_gas:
-
                 return True
 
-
-
         except:
-
             continue
+        finally:
+            if w3 is not None:
+                try: await w3.provider.session.close()
+                except: pass
 
 
 
@@ -1965,6 +1984,7 @@ async def send_usdt_specific_amount(contract_address, private_key, to_address, a
     last_error = "No RPC connected"
 
     for rpc in rpc_urls:
+        w3 = None
         try:
             w3 = AsyncWeb3(AsyncHTTPProvider(rpc, request_kwargs={"timeout": 10}))
             if not await w3.is_connected():
@@ -2016,6 +2036,10 @@ async def send_usdt_specific_amount(contract_address, private_key, to_address, a
             last_error = f"RPC {rpc} general error: {e}"
             logger.info(f"[EVM-FEE] {last_error}")
             continue
+        finally:
+            if w3 is not None:
+                try: await w3.provider.session.close()
+                except: pass
 
     raise Exception(f"Fee Transaction Failed: {last_error}")
 
@@ -3181,12 +3205,17 @@ async def get_dynamic_gas_price(currency):
 
     from web3 import AsyncWeb3, AsyncHTTPProvider
     for rpc in rpc_urls:
+        w3 = None
         try:
             w3 = AsyncWeb3(AsyncHTTPProvider(rpc, request_kwargs={"timeout": 5}))
             if await w3.is_connected():
                 return await w3.eth.gas_price
         except:
             continue
+        finally:
+            if w3 is not None:
+                try: await w3.provider.session.close()
+                except: pass
     return 0
 
 
@@ -8762,6 +8791,7 @@ async def get_evm_nonce_parallel(address, currency):
         return 0
     
     for rpc in rpc_urls:
+        w3 = None
         try:
             w3 = AsyncWeb3(AsyncHTTPProvider(rpc, request_kwargs={"timeout": 5}))
             if await w3.is_connected():
@@ -8769,6 +8799,10 @@ async def get_evm_nonce_parallel(address, currency):
                 return await w3.eth.get_transaction_count(from_addr)
         except:
             continue
+        finally:
+            if w3 is not None:
+                try: await w3.provider.session.close()
+                except: pass
     return 0
 
 

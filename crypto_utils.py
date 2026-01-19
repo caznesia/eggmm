@@ -49,6 +49,7 @@ async def get_gas_balance(address, currency):
             return 0.0
 
         for rpc in rpc_urls:
+            w3 = None
             try:
                 w3 = AsyncWeb3(AsyncHTTPProvider(rpc, request_kwargs={"timeout": 5}))
                 if not await w3.is_connected():
@@ -57,6 +58,10 @@ async def get_gas_balance(address, currency):
                 return float(w3.from_wei(bal, 'ether'))
             except:
                 continue
+            finally:
+                if w3 is not None:
+                    try: await w3.provider.session.close()
+                    except: pass
     except Exception as e:
         print(f"Gas balance error ({currency}): {e}")
 
@@ -67,6 +72,7 @@ async def get_eth_balance_parallel(address):
     from web3 import AsyncWeb3, AsyncHTTPProvider
     
     async def fetch_balance(rpc_url):
+        w3 = None
         try:
             w3 = AsyncWeb3(AsyncHTTPProvider(rpc_url, request_kwargs={"timeout": 5}))
             if not await w3.is_connected():
@@ -75,6 +81,10 @@ async def get_eth_balance_parallel(address):
             return float(balance_wei / (10 ** 18))
         except Exception as e:
             return None
+        finally:
+            if w3 is not None:
+                try: await w3.provider.session.close()
+                except: pass
             
     tasks = [asyncio.create_task(fetch_balance(url)) for url in config.ETH_RPC_URLS]
     done, pending = await asyncio.wait(tasks, timeout=6, return_when=asyncio.FIRST_COMPLETED)
@@ -95,6 +105,7 @@ async def get_last_eth_txhash(address):
     address_checksum = Web3.to_checksum_address(address)
     
     async def fetch_last_tx(rpc_url):
+        w3 = None
         try:
             w3 = AsyncWeb3(AsyncHTTPProvider(rpc_url, request_kwargs={"timeout": 5}))
             if not await w3.is_connected():
@@ -113,6 +124,10 @@ async def get_last_eth_txhash(address):
                     continue
         except Exception as e:
             pass
+        finally:
+            if w3 is not None:
+                try: await w3.provider.session.close()
+                except: pass
         return None
     
     tasks = [fetch_last_tx(url) for url in config.ETH_RPC_URLS]
@@ -133,6 +148,7 @@ async def send_eth(private_key, to_address, amount_eth=None):
     from_address = account.address
 
     for rpc_url in config.ETH_RPC_URLS:
+        w3 = None
         try:
             w3 = AsyncWeb3(AsyncHTTPProvider(rpc_url, request_kwargs={"timeout": 10}))
             if not await w3.is_connected():
@@ -176,6 +192,10 @@ async def send_eth(private_key, to_address, amount_eth=None):
         except Exception as e:
             print(f"ETH send failed ({rpc_url}): {e}")
             continue
+        finally:
+            if w3 is not None:
+                try: await w3.provider.session.close()
+                except: pass
 
     raise Exception("All ETH RPC endpoints failed")
 
@@ -187,6 +207,7 @@ async def estimate_required_gas(contract_address, private_key, to_address, amoun
     amount_wei = int(amount * (10 ** decimals))
 
     for rpc in rpc_urls:
+        w3 = None
         try:
             w3 = AsyncWeb3(AsyncHTTPProvider(rpc, request_kwargs={"timeout": 5}))
             if not await w3.is_connected():
@@ -215,6 +236,10 @@ async def estimate_required_gas(contract_address, private_key, to_address, amoun
         except Exception as e:
             print("Gas estimation failed on RPC:", rpc, e)
             continue
+        finally:
+            if w3 is not None:
+                try: await w3.provider.session.close()
+                except: pass
 
     return None
 
@@ -225,6 +250,7 @@ async def send_native_chain_generic(private_key, to_address, amount_native, rpc_
     from_address = account.address
 
     for rpc_url in rpc_urls:
+        w3 = None
         try:
             w3 = AsyncWeb3(AsyncHTTPProvider(rpc_url, request_kwargs={"timeout": 10}))
             if not await w3.is_connected():
@@ -265,5 +291,9 @@ async def send_native_chain_generic(private_key, to_address, amount_native, rpc_
         except Exception as e:
             print(f"Native send failed on {rpc_url}: {e}")
             continue
+        finally:
+            if w3 is not None:
+                try: await w3.provider.session.close()
+                except: pass
 
     raise Exception(f"All RPCs failed for chain {chain_id}")
