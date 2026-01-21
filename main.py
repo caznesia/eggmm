@@ -4445,9 +4445,9 @@ async def handle_partial_payment_fast(channel, deal_info, received, expected, cu
 
 
 
-        embed.add_field(name="Received (LTC)", value=f"`{received} | ${usd_received}`")
+        embed.add_field(name=f"Received ({cur_name})", value=f"`{received} | ${usd_received}`")
 
-        embed.add_field(name="Required (LTC)", value=f"`{expected} | ${usd_expected}`")
+        embed.add_field(name=f"Required ({cur_name})", value=f"`{expected} | ${usd_expected}`")
 
 
 
