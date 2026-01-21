@@ -159,43 +159,57 @@ class Tools(commands.Cog):
         return None
 
     async def get_ltc_balance_public(self, address):
-        """Fetch LTC stats via public API."""
+        """Fetch LTC stats via public API with fallbacks."""
         import aiohttp
-        # Blockcypher LTC
-        urls = [
-            f"https://api.blockcypher.com/v1/ltc/main/addrs/{address}?limit=1"
+        session = await self.bot.get_session() if hasattr(self.bot, "get_session") else aiohttp.ClientSession()
+        
+        # Sources in priority order
+        sources = [
+            ("BlockCypher", f"https://api.blockcypher.com/v1/ltc/main/addrs/{address}?limit=1"),
+            ("LitecoinSpace", f"https://litecoinspace.org/api/address/{address}")
         ]
-        async with aiohttp.ClientSession() as session:
-            for url in urls:
-                try:
-                    async with session.get(url, timeout=5) as r:
-                        if r.status == 200:
-                            data = await r.json()
-                            stats = {
-                                'balance': 0.0, 'unconfirmed': 0.0, 
-                                'total_tx': 0, 'total_received': 0.0, 
-                                'total_sent': 0.0,
-                                'last_active': None
-                            }
+
+        for name, url in sources:
+            try:
+                async with session.get(url, timeout=5) as r:
+                    if r.status == 200:
+                        data = await r.json()
+                        stats = {
+                            'balance': 0.0, 'unconfirmed': 0.0, 
+                            'total_tx': 0, 'total_received': 0.0, 
+                            'total_sent': 0.0,
+                            'last_active': None
+                        }
+                        
+                        if name == "BlockCypher" and "balance" in data:
+                            stats['balance'] = data.get('balance', 0) / 1e8
+                            stats['unconfirmed'] = data.get('unconfirmed_balance', 0) / 1e8
+                            stats['total_tx'] = data.get('n_tx', 0)
+                            stats['total_received'] = data.get('total_received', 0) / 1e8
+                            stats['total_sent'] = data.get('total_sent', 0) / 1e8
                             
-                            if "balance" in data:
-                                stats['balance'] = data.get('balance', 0) / 1e8
-                                stats['unconfirmed'] = data.get('unconfirmed_balance', 0) / 1e8
-                                stats['total_tx'] = data.get('n_tx', 0)
-                                stats['total_received'] = data.get('total_received', 0) / 1e8
-                                stats['total_sent'] = data.get('total_sent', 0) / 1e8
-                                
-                                txs = data.get('unconfirmed_txrefs', []) + data.get('txrefs', [])
-                                if txs:
-                                    latest = txs[0]
-                                    if 'confirmed' in latest:
-                                          try:
-                                              dt = datetime.datetime.fromisoformat(latest['confirmed'].replace('Z', '+00:00'))
-                                              stats['last_active'] = int(dt.timestamp())
-                                          except: pass
-                                return stats
-                except:
-                    continue
+                            txs = data.get('unconfirmed_txrefs', []) + data.get('txrefs', [])
+                            if txs:
+                                latest = txs[0]
+                                if 'confirmed' in latest:
+                                      try:
+                                          dt = datetime.datetime.fromisoformat(latest['confirmed'].replace('Z', '+00:00'))
+                                          stats['last_active'] = int(dt.timestamp())
+                                      except: pass
+                            return stats
+
+                        elif name == "LitecoinSpace" and "chain_stats" in data:
+                            cs = data.get("chain_stats", {})
+                            ms = data.get("mempool_stats", {})
+                            stats['balance'] = (cs.get("funded_txo_sum", 0) - cs.get("spent_txo_sum", 0)) / 1e8
+                            stats['unconfirmed'] = (ms.get("funded_txo_sum", 0) - ms.get("spent_txo_sum", 0)) / 1e8
+                            stats['total_tx'] = cs.get("tx_count", 0) + ms.get("tx_count", 0)
+                            stats['total_received'] = cs.get("funded_txo_sum", 0) / 1e8
+                            stats['total_sent'] = cs.get("spent_txo_sum", 0) / 1e8
+                            return stats
+
+            except:
+                continue
         return None
 
     async def currency_autocomplete(self, interaction: discord.Interaction, current: str):
@@ -390,19 +404,42 @@ class Tools(commands.Cog):
         # Fallback: Public API
         import aiohttp
         urls = [
-            f"https://api.blockcypher.com/v1/ltc/main/txs/{txid}",
-            f"https://chain.so/api/v2/get_tx/LTC/{txid}" 
+            ("LitecoinSpace", f"https://litecoinspace.org/api/tx/{txid}"),
+            ("BlockCypher", f"https://api.blockcypher.com/v1/ltc/main/txs/{txid}"),
+            ("ChainSo", f"https://chain.so/api/v2/get_tx/LTC/{txid}") 
         ]
         
         async with aiohttp.ClientSession() as session:
-            for url in urls:
+            for name, url in urls:
                 try:
                     async with session.get(url, timeout=5) as r:
                          if r.status == 200:
                              data = await r.json()
                              # Normalize data to resemble RPC 'getrawtransaction' verbose output
                              
-                             if "outputs" in data: # Blockcypher
+                             if name == "LitecoinSpace":
+                                 mapped = {
+                                     'txid': data.get('txid', txid),
+                                     'confirmations': 0,
+                                     'time': data.get('status', {}).get('block_time', 0),
+                                     'vout': []
+                                 }
+                                 # Get confirmations
+                                 try:
+                                     async with session.get("https://litecoinspace.org/api/blocks/tip/height", timeout=3) as r2:
+                                         if r2.status == 200:
+                                             tip = int(await r2.text())
+                                             mapped['confirmations'] = tip - data['status']['block_height'] + 1
+                                 except: pass
+
+                                 for out in data.get('vout', []):
+                                     mapped['vout'].append({
+                                         'value': out.get('value', 0) / 1e8,
+                                         'scriptPubKey': {'addresses': [out.get('scriptpubkey_address')] if out.get('scriptpubkey_address') else []}
+                                     })
+                                 return mapped
+
+                             elif name == "BlockCypher" and "outputs" in data:
                                  mapped = {
                                      'txid': data.get('hash', txid),
                                      'confirmations': data.get('confirmations', 0),
@@ -426,7 +463,7 @@ class Tools(commands.Cog):
                                      })
                                  return mapped
                                  
-                             elif "data" in data and "txid" in data["data"]: # Chain.so
+                             elif name == "ChainSo" and "data" in data and "txid" in data["data"]:
                                   d = data["data"]
                                   mapped = {
                                       'txid': d.get('txid'),

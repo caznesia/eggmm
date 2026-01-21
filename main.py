@@ -3141,7 +3141,7 @@ async def get_ltc_txid_async(address: str):
     async def fetch_mempool():
         url = f"https://litecoinspace.org/api/address/{address}/txs/mempool"
         try:
-            async with session.get(url, proxy=proxy_url, timeout=1.5) as r:
+            async with session.get(url, proxy=proxy_url, timeout=5.0) as r:
                 if r.status == 200:
                     txs = await r.json()
                     if txs: return [t["txid"] for t in txs]
@@ -3151,7 +3151,7 @@ async def get_ltc_txid_async(address: str):
     async def fetch_confirmed():
         url = f"https://litecoinspace.org/api/address/{address}/txs"
         try:
-            async with session.get(url, proxy=proxy_url, timeout=1.5) as r:
+            async with session.get(url, proxy=proxy_url, timeout=5.0) as r:
                 if r.status == 200:
                     txs = await r.json()
                     if txs: return [t["txid"] for t in txs]
@@ -3161,7 +3161,7 @@ async def get_ltc_txid_async(address: str):
     async def fetch_blockcypher():
         url = f"https://api.blockcypher.com/v1/ltc/main/addrs/{address}?token={BLOCKCYPHER_KEY}"
         try:
-            async with session.get(url, proxy=proxy_url, timeout=1.5) as r:
+            async with session.get(url, proxy=proxy_url, timeout=5.0) as r:
                 if r.status == 200:
                     d = await r.json()
                     all_txs = (d.get("unconfirmed_txrefs") or []) + (d.get("txrefs") or []) # Prefer unconfirmed first
@@ -3172,7 +3172,7 @@ async def get_ltc_txid_async(address: str):
     async def fetch_sochain():
         url = f"https://chain.so/api/v2/address/LTC/{address}"
         try:
-            async with session.get(url, proxy=proxy_url, timeout=1.5) as r:
+            async with session.get(url, proxy=proxy_url, timeout=5.0) as r:
                 d = await r.json()
                 if d.get("status") == "success" and d.get("data") and d["data"].get("txs"): 
                     return [t["txid"] for t in d["data"]["txs"]]
@@ -3237,7 +3237,10 @@ async def gas_needed_for_currency(currency):
     
     # ERC20 transfer gas limit (Standard 65k)
     gas_limit = 65000
-    total_gas_needed = gas_limit * tx_count
+    
+    # BUFFER: Using a 3x multiplier to ensure gas funding covers actual payout costs.
+    # Note: Payouts use 1.8x limit and 1.5x price (2.7x total). 3x provides a safe margin.
+    total_gas_needed = gas_limit * tx_count * 3.0
     
     if gas_price == 0:
         # Fallback to config if RPC fails
@@ -4148,10 +4151,11 @@ async def check_payment_multicurrency(address, channel, expected_amount, deal_in
                 save_all_data(data)
                 
                 # Calculate difference
-                # Calculate difference
                 difference = float(expected_amount) - total
-                # FIX: Use fixed clean tolerance matching line 4221 (0.0001) instead of percentage
-                tolerance = 0.0001
+                
+                # TOLERANCE: Increased to 0.01 (1 cent) for USDT/USD-pegged assets to avoid friction with tiny "dust" differences.
+                # Previously it was 0.0001 which was too sensitive to network fee deductions or rounding.
+                tolerance = 0.01 if "usdt" in currency.lower() else (expected_amount * 0.001)
                 
                 if difference > tolerance:
                     print(f"[DEBUG-PARTIAL] Total: {total} | Expected: {expected_amount} | Diff: {difference} | LastNotify: {deal_info.get('last_partial_notification_amount')}")
