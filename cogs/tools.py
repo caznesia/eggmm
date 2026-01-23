@@ -344,7 +344,7 @@ class Tools(commands.Cog):
 
             
             title = localization_service.get("wallet_overview", lang, symbol=symbol, chain=chain_name)
-            embed = discord.Embed(title=title, color=0x00FF00)
+            embed = discord.Embed(title=title, color=config.COLOR_MAIN)
             
             colors = {'BTC': 0xF7931A, 'LTC': 0x345D9D, 'ETH': 0x627EEA, 'SOL': 0x14F195, 'BNB': 0xF3BA2F, 'MATIC': 0x8247E5, 'USDT': 0x26A17B}
             embed.color = colors.get(symbol, 0x00FF00)
@@ -1057,7 +1057,7 @@ class Tools(commands.Cog):
                                     f"**TXID:** `{txid}`\n"
                                     f"**Currency:** {currency.upper()}"
                                 ),
-                                color=0x2ecc71
+                                color=config.COLOR_MAIN
                             )
                             url = self.get_explorer_link(currency, txid)
                             if url:

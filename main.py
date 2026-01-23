@@ -1625,7 +1625,7 @@ async def send_usdt_wallet_with_gas_embed(interaction, deal_id, currency, addres
 
         title="Payment Required",
 
-        color=0x0000ff,
+        color=config.COLOR_MAIN,
 
         description="Please complete the payments below to continue the deal."
 
@@ -1797,7 +1797,7 @@ async def send_funds_with_fee(deal_info, to_address, amount=None, status_msg=Non
                 await status_msg.edit(embed=discord.Embed(
                     title="Withdrawal Processing",
                     description="*Preparing gas fees...*",
-                    color=0x0000ff
+                    color=config.COLOR_MAIN
                 ))
             except: pass
         gas_success = await ensure_deal_gas(deal_info, status_msg=status_msg)
@@ -1846,7 +1846,7 @@ async def send_funds_with_fee(deal_info, to_address, amount=None, status_msg=Non
             await status_msg.edit(embed=discord.Embed(
                 title="Withdrawal Processing",
                 description="*Signing transaction...*",
-                color=0x0000ff
+                color=config.COLOR_MAIN
             ))
         except: pass
     
@@ -1896,7 +1896,7 @@ async def send_funds_with_fee(deal_info, to_address, amount=None, status_msg=Non
                     await status_msg.edit(embed=discord.Embed(
                         title="Withdrawal Processing",
                         description="*Verifying on blockchain...*",
-                        color=0x0000ff
+                        color=config.COLOR_MAIN
                     ))
                 except: pass
 
@@ -1925,7 +1925,7 @@ async def send_funds_with_fee(deal_info, to_address, amount=None, status_msg=Non
             await status_msg.edit(embed=discord.Embed(
                 title="Withdrawal Processing",
                 description="*Sending funds to recipient...*",
-                color=0x0000ff
+                color=config.COLOR_MAIN
             ))
         except: pass
     
@@ -3991,7 +3991,7 @@ async def check_payment_multicurrency(address, channel, expected_amount, deal_in
                          sw_embed = discord.Embed(
                              title="Payment Chain Detected",
                              description=f"Detected payment on **{alt_currency.upper().replace('_', ' ')}**. \nSwitching deal currency automatically.",
-                             color=0x00ff00
+                             color=config.COLOR_MAIN
                          )
                          await channel.send(embed=sw_embed)
                      except: pass
@@ -4357,7 +4357,7 @@ async def handle_partial_payment_fast(channel, deal_info, received, expected, cu
 
             title="Transaction Detected (Partial)",
 
-            color=0x0000ff,
+            color=config.COLOR_MAIN,
 
             description="Received **less** than required. Confirm to proceed."
 
@@ -4458,7 +4458,7 @@ async def handle_partial_payment_fast(channel, deal_info, received, expected, cu
 
                 title=f"{gas_symbol} Required For Network Fee",
 
-                color=0x0000ff,
+                color=config.COLOR_MAIN,
 
                 description=(
 
@@ -4508,7 +4508,7 @@ async def handle_partial_payment_fast(channel, deal_info, received, expected, cu
 
         title="Transaction Detected (Partial)",
 
-        color=0x0000ff,
+        color=config.COLOR_MAIN,
 
         description="Received **less** than required. Confirm to proceed."
 
@@ -4906,7 +4906,7 @@ async def handle_full_payment(
                 f"**Buyer (<@{buyer_id}>):**\n"
                 "Do **NOT** release funds until you have fully received and verified the item."
             ),
-            color=0x00ff00
+            color=config.COLOR_MAIN
         )
         final_embed.set_author(name="Transaction Verified", icon_url=VERIFIED_ICON_URL)
         
@@ -5255,7 +5255,7 @@ class BuyerSellerModal(Modal, title="Fill properly below!"):
                         f"**🛡️ Security Tip:** Never share your Deal ID with anyone except staff. "
                         f"This ID is used to recover your transaction if needed."
                     ),
-                    color=0x0000ff
+                    color=config.COLOR_MAIN
                 )
                 dm_embed.add_field(name="🆔 Deal ID", value=f"```\n{deal_id}\n```", inline=False)
                 dm_embed.add_field(name="💬 Deal Channel", value=channel.mention, inline=True)
@@ -5280,7 +5280,7 @@ class BuyerSellerModal(Modal, title="Fill properly below!"):
             embed_deal_id = discord.Embed(
                 title="Deal ID",
                 description=f"```\n{deal_id}\n```\n⚠️ **Save this deal id to recover your deals in case of acc termination, account limit, or lost account.**",
-                color=0x0000ff
+                color=config.COLOR_MAIN
             )
 
             logo_url = "https://cdn.discordapp.com/attachments/1383487913186169032/1384932699717898300/Untitled-2.png"
@@ -5298,7 +5298,7 @@ class BuyerSellerModal(Modal, title="Fill properly below!"):
                     "• **Receiver:** `None` (Click to set below)\n"
                     "━━━━━━━━━━━━━━━━━━━━━━━━━━"
                 ),
-                color=0x0000ff
+                color=config.COLOR_MAIN
             )
             embed_system.set_author(name="RainyDay MM Escrow Services", icon_url=logo_url)
             embed_system.set_thumbnail(url=logo_url)
@@ -5320,7 +5320,7 @@ class BuyerSellerModal(Modal, title="Fill properly below!"):
                     "**Sender**\n`None`\n\n"
                     "**Receiver**\n`None`"
                 ),
-                color=0x0000ff
+                color=config.COLOR_MAIN
             )
             embed_selection.set_author(name="RainyDay MM", icon_url=logo_url)
             embed_selection.set_thumbnail(url="https://cdn.discordapp.com/attachments/1383487913186169032/1384932699717898300/Untitled-2.png") 
@@ -5455,7 +5455,7 @@ class ToSModal(Modal, title="Please tell properly!"):
 
         try:
 
-            embed = discord.Embed(title="Product Details", color=0x0000ff)
+            embed = discord.Embed(title="Product Details", color=config.COLOR_MAIN)
             embed.add_field(name="Product", value=f"```\n{self.product.value}\n```", inline=False)
             tos_val = self.tos.value if self.tos.value else 'No ToS and Warranty'
             embed.add_field(name="ToS and Warranty", value=f"```\n{tos_val}\n```", inline=False)
@@ -5624,7 +5624,7 @@ class ToSCoButtons(View):
 
                     ),
 
-                    color=0x0000ff
+                    color=config.COLOR_MAIN
 
                 )
 
@@ -5652,7 +5652,7 @@ class ToSCoButtons(View):
 
                     ),
 
-                    color=0x0000ff
+                    color=config.COLOR_MAIN
 
                 )
 
@@ -5776,7 +5776,7 @@ class ToSCoButtons(View):
 
                                         f"in {currency.upper()}?",
 
-                            color=0x0000ff
+                            color=config.COLOR_MAIN
 
                         )
 
@@ -5843,7 +5843,7 @@ class ToSCoButtons(View):
         tos_embed = discord.Embed(
             title="Product Details",
             description="- Please discuss ToS & Warranty.\n- Then click below to conclude your deal.",
-            color=0x0000ff
+            color=config.COLOR_MAIN
         )
         tos_embed.set_thumbnail(
              url="https://cdn.discordapp.com/attachments/1438896774243942432/1446517343084740688/discotools-xyz-icon__2_-removebg-preview.png?ex=6938e301&is=69379181&hm=894ab566fd708a090f2ff2f58ef335ad8c3ce14f108c10f372d74f60d773be84&"
@@ -5974,7 +5974,7 @@ class ToSButtonsAllInOne(discord.ui.View):
 
                         "🧑‍💼 **Receiver**: Even the Receiver must record the process of bringing ownership to another.",
 
-            color=0x0000ff
+            color=config.COLOR_MAIN
 
         )
 
@@ -5996,7 +5996,7 @@ class ToSButtonsAllInOne(discord.ui.View):
 
                         "🧑‍💼 **Receiver**: The Receiver should confirm with the Sender whether they're ready to record their screen. Do not share the code without their confirmation.",
 
-            color=0x0000ff
+            color=config.COLOR_MAIN
 
         )
 
@@ -6018,7 +6018,7 @@ class ToSButtonsAllInOne(discord.ui.View):
 
                         "🧑‍💼 **Receiver**: Must confirm before dropping the account and guide the Sender fully.",
 
-            color=0x0000ff
+            color=config.COLOR_MAIN
 
         )
 
@@ -6040,7 +6040,7 @@ class ToSButtonsAllInOne(discord.ui.View):
 
                         "🧑‍💼 **Receiver**: Must provide payment proof after delivery.",
 
-            color=0x0000ff
+            color=config.COLOR_MAIN
 
         )
 
@@ -6062,7 +6062,7 @@ class ToSButtonsAllInOne(discord.ui.View):
 
                         "🧑‍💼 **Receiver**: Must provide product proof after delivery.",
 
-            color=0x0000ff
+            color=config.COLOR_MAIN
 
         )
 
@@ -6090,7 +6090,7 @@ class ToSButtonsAllInOnee(discord.ui.View):
 
                         "🧑‍💼 **Receiver**: Even the Receiver must record the process of bringing ownership to another.",
 
-            color=0x0000ff
+            color=config.COLOR_MAIN
 
         )
 
@@ -6112,7 +6112,7 @@ class ToSButtonsAllInOnee(discord.ui.View):
 
                         "🧑‍💼 **Receiver**: The Receiver should confirm with the Sender whether they're ready to record their screen. Do not share the code without their confirmation.",
 
-            color=0x0000ff
+            color=config.COLOR_MAIN
 
         )
 
@@ -6134,7 +6134,7 @@ class ToSButtonsAllInOnee(discord.ui.View):
 
                         "🧑‍💼 **Receiver**: Must confirm before dropping the account and guide the Sender fully.",
 
-            color=0x0000ff
+            color=config.COLOR_MAIN
 
         )
 
@@ -6156,7 +6156,7 @@ class ToSButtonsAllInOnee(discord.ui.View):
 
                         "🧑‍💼 **Receiver**: Must provide payment proof after delivery.",
 
-            color=0x0000ff
+            color=config.COLOR_MAIN
 
         )
 
@@ -6178,7 +6178,7 @@ class ToSButtonsAllInOnee(discord.ui.View):
 
                         "🧑‍💼 **Receiver**: Must provide product proof after delivery.",
 
-            color=0x0000ff
+            color=config.COLOR_MAIN
 
         )
 
@@ -6258,7 +6258,7 @@ class ConfButtons(discord.ui.View):
         
         update_deal(interaction.channel.id, deal)
 
-        embedd = discord.Embed(title="User Selection", color=0x0000ff)
+        embedd = discord.Embed(title="User Selection", color=config.COLOR_MAIN)
         embedd.add_field(name="Sender", value="`None`", inline=False)
         embedd.add_field(name="Receiver", value="`None`", inline=False)
         embedd.set_thumbnail(url="https://cdn.discordapp.com/attachments/1438896774243942432/1446517323069521992/discotools-xyz-icon_1.png?ex=693445bc&is=6932f43c&hm=5dc48048ac28e07a15b124c51e0b07ff9c8b8ef927dccdcf9b002226febd9b77&")
@@ -6321,7 +6321,7 @@ class ConfButtons(discord.ui.View):
         
         confirm_embed = discord.Embed(
             description=f"{interaction.user.mention} ({'Sender' if uid == str(self.buyer) else 'Receiver'}) has confirmed.",
-            color=0x0000ff
+            color=config.COLOR_MAIN
         )
         await interaction.channel.send(embed=confirm_embed)
 
@@ -6332,7 +6332,7 @@ class ConfButtons(discord.ui.View):
             current_deal["conf_tos_sent"] = True
             update_deal(interaction.channel.id, current_deal)
 
-            embed = discord.Embed(title="User Confirmation", color=0x0000ff)
+            embed = discord.Embed(title="User Confirmation", color=config.COLOR_MAIN)
             embed.add_field(name="Sender", value=get_rich_user_display(interaction.guild, self.buyer), inline=False)
             embed.add_field(name="Receiver", value=get_rich_user_display(interaction.guild, self.seller), inline=False)
             embed.set_footer(text="RainyDay MM", icon_url="https://cdn.discordapp.com/attachments/1383487913186169032/1384932699717898300/Untitled-2.png")
@@ -6341,7 +6341,7 @@ class ConfButtons(discord.ui.View):
             tos_embed = discord.Embed(
                 title="Product Details",
                 description="- Please discuss about ToS and Warranty of products you are dealing. And then click the button below to officially conclude your deal.\n- If you skip this process and put nothing in the ToS and Warranty button below, we will not take any responsibility if you have any problem.",
-                color=0x0000ff
+                color=config.COLOR_MAIN
             )
             tos_embed.set_thumbnail(url="https://cdn.discordapp.com/attachments/1438896774243942432/1446517343084740688/discotools-xyz-icon__2_-removebg-preview.png?ex=693445c1&is=6932f441&hm=5c3da62aeac41487f233c248bd8f20c108e1a43795335ad57f0db85349b7c99b&")
 
@@ -6590,7 +6590,7 @@ class SendButton(discord.ui.View):
                 f"**Sender**\n{sender_display}\n\n"
                 f"**Receiver**\n{receiver_display}"
             ),
-            color=0x0000ff
+            color=config.COLOR_MAIN
         )
         embed_selection.set_author(name="RainyDay MM", icon_url=logo_url)
         embed_selection.set_thumbnail(url=logo_url)
@@ -6656,7 +6656,7 @@ class SendButton(discord.ui.View):
 
         if sender != "None" and receiver != "None":
 
-            confirm = discord.Embed(title="User Confirmation", color=0x0000ff)
+            confirm = discord.Embed(title="User Confirmation", color=config.COLOR_MAIN)
 
             confirm.add_field(name="Sender", value=get_rich_user_display(interaction.guild, sender), inline=False)
 
@@ -6781,7 +6781,7 @@ class AmountConButton(View):
 
             ),
 
-            color=0x0000ff
+            color=config.COLOR_MAIN
 
         )
 
@@ -6904,7 +6904,7 @@ class AmountConButton(View):
 
                                     f"in {self.currency.upper()}?",
 
-                        color=0x0000ff
+                        color=config.COLOR_MAIN
 
                     )
 
@@ -7044,7 +7044,7 @@ class AmountConButton(View):
                         f"- <@{buyer_id}> Please proceed by transferring the agreed-upon funds\n"
                         f"- COPY & PASTE the EXACT AMOUNT to avoid errors.\n\n"
                     ),
-                    color=0x0000ff
+                    color=config.COLOR_MAIN
                 )
                 embed.add_field(name=f"{currency_display} Address", value=f"{address}", inline=False)
                 embed.add_field(name=f"{currency_display} Amount", value=f"{crypto_amount:.8f}", inline=True)
@@ -7065,7 +7065,7 @@ class AmountConButton(View):
                 
                 timeout_embed = discord.Embed(
                     description="-# Note - If you don't send the amount within 20 minutes, the deal will be cancelled.",
-                    color=0x0000ff
+                    color=config.COLOR_MAIN
                 )
                 await interaction.channel.send(embed=timeout_embed)
 
@@ -7208,7 +7208,7 @@ class AddyButtons(View):
                 embed = discord.Embed(
                     title="Payment QR Code",
                     description="Scan this with your mobile wallet to pay.",
-                    color=0x0000FF
+                    color=config.COLOR_MAIN
                 )
                 embed.add_field(name="Address", value=f"`{addy}`", inline=False)
                 try:
@@ -7342,7 +7342,7 @@ class ProceedButton(View):
     
                      
     
-                     confirmed_embed = discord.Embed(title="Deal Confirmation", color=0x0000ff, description=">>> Payment successfully received.")
+                     confirmed_embed = discord.Embed(title="Deal Confirmation", color=config.COLOR_MAIN, description=">>> Payment successfully received.")
     
                      confirmed_embed.add_field(name=f"{currency_display} Amount", value=f"{bal}", inline=False)
     
@@ -7430,7 +7430,7 @@ class ProceedButton(View):
                             
                             explorer_url = get_explorer_url(currency, tx_hash)
                             
-                            em = discord.Embed(title=f"{currency_display_full} Sent", description=f"Address: `{address}`\nTransaction ID: [{tx_hash}]({explorer_url})", color=0x0000ff)
+                            em = discord.Embed(title=f"{currency_display_full} Sent", description=f"Address: `{address}`\nTransaction ID: [{tx_hash}]({explorer_url})", color=config.COLOR_MAIN)
                             await msg.reply(embed=em)
                             await send_transcript(interaction.channel, seller_id, buyer_id, txid=tx_hash)
                             deals = load_all_data()
@@ -7520,7 +7520,7 @@ class RescanButton(View):
 
             title="Payment Time Extended",
 
-            color=0x00ff00,
+            color=config.COLOR_MAIN,
 
             description=f">>> Payment time has been extended by 20 minutes. You have {2 - deal['rescan_count']} rescan attempts remaining."
 
@@ -7669,7 +7669,7 @@ class ReleaseButton(View):
             seller_id, buyer_id = 0, 0
 
         if (interaction.user.id == seller_id or interaction.user.id == buyer_id) and seller_id != 0:
-            embed = discord.Embed(title="Deal Guide", color=0x0000ff, description=f"**After Completing the deal:**\n<@{buyer_id}> must click **Release** and **Confirm** to transfer the funds to <@{seller_id}>.\n**To Cancel this deal:**\n<@{seller_id}> must click **Cancel** and **Confirm** to transfer the funds to <@{buyer_id}>.")
+            embed = discord.Embed(title="Deal Guide", color=config.COLOR_MAIN, description=f"**After Completing the deal:**\n<@{buyer_id}> must click **Release** and **Confirm** to transfer the funds to <@{seller_id}>.\n**To Cancel this deal:**\n<@{seller_id}> must click **Cancel** and **Confirm** to transfer the funds to <@{buyer_id}>.")
 
             embed.set_thumbnail(url="https://cdn.discordapp.com/attachments/1373630302710399039/1387516877139476551/ddg9MWL.png?ex=685da14a&is=685c4fca&hm=7f2145fa614533ed4b84661299cb955e67d54bd4f16962b67e7350cfc593d972&")
 
@@ -7855,7 +7855,7 @@ class ReleaseButton(View):
 
             
 
-            embed = discord.Embed(title="Release Confirmation", color=0x0000ff, description=f"<@{buyer_id}> Are you sure you want to release the funds to <@{seller_id}>?\n\n**Note:** Once released, the funds cannot be reversed.")
+            embed = discord.Embed(title="Release Confirmation", color=config.COLOR_MAIN, description=f"<@{buyer_id}> Are you sure you want to release the funds to <@{seller_id}>?\n\n**Note:** Once released, the funds cannot be reversed.")
 
             embed.set_footer(text="Our Staffs will never ask you to release the funds.")
 
@@ -8152,7 +8152,7 @@ class WithdrawalModal(Modal):
             process_em = discord.Embed(
                 title="Withdrawal Processing",
                 description="*Preparing transaction...*",
-                color=0x0000ff
+                color=config.COLOR_MAIN
             )
             status_msg = await interaction.channel.send(embed=process_em)
 
@@ -8188,7 +8188,7 @@ class WithdrawalModal(Modal):
             em = discord.Embed(
                 title=f"✅ {self.currency_display} Sent Successfully",
                 description=description,
-                color=0x00ff00,
+                color=config.COLOR_MAIN,
                 timestamp=datetime.datetime.now()
             )
             em.set_thumbnail(url="https://cdn.discordapp.com/attachments/1384928504189026466/1385336614699532449/IMG_1336.png")
@@ -8302,7 +8302,7 @@ class RefundModal(Modal):
             process_em = discord.Embed(
                 title="Refund Processing",
                 description="*Preparing transaction...*",
-                color=0x0000ff
+                color=config.COLOR_MAIN
             )
             status_msg = await interaction.channel.send(embed=process_em)
 
@@ -8312,7 +8312,7 @@ class RefundModal(Modal):
                     await status_msg.edit(embed=discord.Embed(
                         title="Refund Processing",
                         description="*Preparing gas fees...*",
-                        color=0x0000ff
+                        color=config.COLOR_MAIN
                     ))
                 except: pass
                 
@@ -8338,7 +8338,7 @@ class RefundModal(Modal):
             
             explorer_url = get_explorer_url(self.currency, tx_hash)
             
-            em = discord.Embed(title=f"✅ {currency_display_full} Refunded", description=f"Address: {address}\nTransaction ID: [{tx_hash}]({explorer_url})", color=0x00ff00)
+            em = discord.Embed(title=f"✅ {currency_display_full} Refunded", description=f"Address: {address}\nTransaction ID: [{tx_hash}]({explorer_url})", color=config.COLOR_MAIN)
             await interaction.channel.send(content=f"<@{buyer_id}>", embed=em)
 
             await send_transcript(interaction.channel, seller_id, buyer_id, txid=tx_hash)
@@ -8460,7 +8460,7 @@ class ReleaseConButton(View):
 
             
 
-            em = discord.Embed(title="Release Funds", color=0x0000ff, description=f"<@{seller_id}> Please click the button below to enter your {currency_display} address and receive funds.")
+            em = discord.Embed(title="Release Funds", color=config.COLOR_MAIN, description=f"<@{seller_id}> Please click the button below to enter your {currency_display} address and receive funds.")
             
             
             deals = load_all_data()
@@ -8528,7 +8528,7 @@ class ReleaseConButton(View):
 
             
 
-            confirmed_embed = discord.Embed(title="Deal Confirmation", color=0x0000ff, description=">>> Payment successfully received.")
+            confirmed_embed = discord.Embed(title="Deal Confirmation", color=config.COLOR_MAIN, description=">>> Payment successfully received.")
 
             confirmed_embed.add_field(name=f"{currency_display} Amount", value=f"{ltcamt:.8f}", inline=False)
 
@@ -8600,7 +8600,7 @@ class CancelConButton(View):
 
             em = discord.Embed(
                 title="Cancel Deal", 
-                color=0x0000ff, 
+                color=config.COLOR_MAIN, 
                 description=f"<@{buyer_id}> Please click the button below to provide your address and get the funds back."
             )
             await interaction.channel.send(embed=em, view=RefundView())
@@ -8917,7 +8917,7 @@ async def check_balance_cmd(interaction: discord.Interaction, address: str, curr
 
         
 
-        embed = discord.Embed(title=f"{currency_display} Balance", color=0x0000ff)
+        embed = discord.Embed(title=f"{currency_display} Balance", color=config.COLOR_MAIN)
 
         embed.add_field(name="Address", value=f"`{address}`", inline=False)
 
@@ -8997,7 +8997,7 @@ async def check_txid_cmd(interaction: discord.Interaction, tx_signature: str):
 
             title="Ethereum Transaction Details",
 
-            color=0x0000ff
+            color=config.COLOR_MAIN
 
         )
 
@@ -9123,7 +9123,7 @@ async def list_transactions_cmd(interaction: discord.Interaction, address: str):
 
             title=f"Ethereum Address - {address[:8]}...{address[-8:]}",
 
-            color=0x0000ff
+            color=config.COLOR_MAIN
 
         )
 
@@ -9187,7 +9187,7 @@ async def stats_cmd(interaction: discord.Interaction, user: discord.Member = Non
     
     embed = discord.Embed(
         description=f"### {target_user.mention}\n\n**Deals completed:**\n{deals}\n\n**Total USD Value:**\n${volume:,.2f}",
-        color=0x2ECC71 
+        color=config.COLOR_MAIN 
     )
     
     
@@ -9370,7 +9370,7 @@ async def force_release(interaction: discord.Interaction, deal_id: str = None):
 
         title="Force Release Initiated",
 
-        color=0x0000ff,
+        color=config.COLOR_MAIN,
 
         description=(
 
@@ -9468,7 +9468,7 @@ async def mod_unlock(interaction: discord.Interaction, deal_id: str = None):
     update_deal(interaction.channel_id, deal)
     await interaction.followup.send(f"✅ Deal `{deal_id}` has been unlocked.", ephemeral=True)
 
-    embed = discord.Embed(title="🔓 Deal Unlocked", description="A moderator has unlocked the Release and Cancel buttons for this deal.", color=discord.Color.green())
+    embed = discord.Embed(title="🔓 Deal Unlocked", description="A moderator has unlocked the Release and Cancel buttons for this deal.", color=config.COLOR_MAIN)
     await interaction.channel.send(embed=embed)
 
 
@@ -9702,7 +9702,7 @@ async def add_user_cmd(interaction: discord.Interaction, user: discord.User):
 
         description=f"> **{user.mention}** has been added to this channel.",
 
-        color=0x0000ff
+        color=config.COLOR_MAIN
 
     )
 
@@ -9856,7 +9856,7 @@ async def transcript_cmd(
 
             description=f"Transcript for channel: {channel.mention}",
 
-            color=0x0000ff
+            color=config.COLOR_MAIN
 
         )
 
@@ -9966,7 +9966,7 @@ async def send_funds_command(interaction: discord.Interaction, deal_id: str, add
 
             description=f"Address: `{address}`\nTransaction ID: [{tx_hash}]({explorer_url})",
 
-            color=0x0000ff
+            color=config.COLOR_MAIN
 
         )
 
@@ -10091,7 +10091,7 @@ async def recover_cmd(interaction: discord.Interaction, deal_id: str):
                 f"• **Deal ID:** `{deal_id}`\n"
                 "━━━━━━━━━━━━━━━━━━━━━━━━━━"
             ),
-            color=0x0000ff
+            color=config.COLOR_MAIN
         )
         
         embed.set_author(name="RainyDay MM Escrow Services", icon_url=logo_url)
@@ -10113,14 +10113,14 @@ async def recover_cmd(interaction: discord.Interaction, deal_id: str):
         except: await new_channel.send(embed=embed)
 
         
-        confirm_embed = discord.Embed(title="User Confirmation", color=0x00ff00)
+        confirm_embed = discord.Embed(title="User Confirmation", color=config.COLOR_MAIN)
         confirm_embed.add_field(name="Sender", value=f"<@{buyer_id}>", inline=True)
         confirm_embed.add_field(name="Receiver", value=f"<@{seller_id}>", inline=True)
         confirm_embed.add_field(name="Status", value="✅ Confirmed by both", inline=False)
         await new_channel.send(embed=confirm_embed)
 
         
-        prod_embed = discord.Embed(title="Product Details", color=0x0000ff)
+        prod_embed = discord.Embed(title="Product Details", color=config.COLOR_MAIN)
         
         
         p_name = deal_info.get("product_name", "N/A - Legacy Deal")
@@ -10136,7 +10136,7 @@ async def recover_cmd(interaction: discord.Interaction, deal_id: str):
         status = deal_info.get('status', 'started')
         
         if status == 'awaiting_withdrawal':
-            em = discord.Embed(title="Restored Session", description="Please continue withdrawal.", color=0x00ff00)
+            em = discord.Embed(title="Restored Session", description="Please continue withdrawal.", color=config.COLOR_MAIN)
             await new_channel.send(embed=em, view=WithdrawalView(deal_id))
             
         elif status == 'started':
@@ -10216,7 +10216,7 @@ async def recover_cmd(interaction: discord.Interaction, deal_id: str):
             confirm_amt = discord.Embed(
                 title="Confirm Amount",
                 description=f"Are you certain that we are expected to receive `{usd_amount}$` in **{currency_display.upper()}**?",
-                color=0x0000ff
+                color=config.COLOR_MAIN
             )
             confirm_amt.set_thumbnail(url="https://cdn.discordapp.com/attachments/1438896774243942432/1446517323069521992/discotools-xyz-icon_1.png")
             await new_channel.send(embed=confirm_amt)
@@ -10228,7 +10228,7 @@ async def recover_cmd(interaction: discord.Interaction, deal_id: str):
                     f"- <@{buyer_id}> Please proceed by transferring the agreed-upon funds\n"
                     f"- COPY & PASTE the EXACT AMOUNT to avoid errors.\n\n"
                 ),
-                color=0x0000ff
+                color=config.COLOR_MAIN
             )
             embed.add_field(name=f"{currency_display} Address", value=f"```\n{existing_address}\n```", inline=False)
             embed.add_field(name=f"{currency_display} Amount", value=f"`{crypto_amount:.8f}`", inline=True)
@@ -10303,7 +10303,7 @@ async def send_panel(ctx):
             "<a:rain_alert:1457341607060705290>   **Ready to Start?**\n"
             "<:rain_heart:1457340964908830903>   **Select an asset from the dropdown below to begin**"
         ),
-        color=0x0000ff
+        color=config.COLOR_MAIN
     )
     
     
@@ -10577,7 +10577,7 @@ async def find_deal_id_cmd(
 
         title="Found Deals",
 
-        color=0x0000ff
+        color=config.COLOR_MAIN
 
     )
 
@@ -10677,7 +10677,7 @@ async def refresh_deal(interaction: discord.Interaction):
         final_embed = discord.Embed(
             title="Deal Confirmed ✅",
             description=">>> **Funds Secured & Verified**\nThe funds are now safely locked in escrow on the blockchain. The Seller should now deliver the goods/service to the Buyer.\n\n**Next Steps:**\n1. **Seller:** Deliver the item/service to the Buyer.\n2. **Buyer:** Verify the item, then click **Release** below.",
-            color=0x00ff00
+            color=config.COLOR_MAIN
         )
         final_embed.set_author(name="Transaction Verified", icon_url=VERIFIED_ICON_URL)
         
@@ -10771,7 +10771,7 @@ async def change_channel_id_cmd(interaction: discord.Interaction, deal_id: str, 
 
         description=f"Deal `{deal_id}` channel ID updated from `{old_channel_id}` to `{new_channel_id}`",
 
-        color=0x00ff00
+        color=config.COLOR_MAIN
 
     )
 
@@ -10813,7 +10813,7 @@ async def get_deal_info_cmd(interaction: discord.Interaction, deal_id: str):
 
         title=f"Deal Information - {deal_id}",
 
-        color=0x0000ff
+        color=config.COLOR_MAIN
 
     )
 
@@ -11186,7 +11186,7 @@ async def close_all(interaction: discord.Interaction):
 
         ),
 
-        color=0x0000ff
+        color=config.COLOR_MAIN
 
     )
 
@@ -11306,7 +11306,7 @@ async def sync_history(interaction: discord.Interaction, limit: int = 100):
         c_info = get_currency_info(raw_curr)
         c_tag = raw_curr.upper().replace("_", " ") if "_" in raw_curr else raw_curr.upper()
         
-        new_embed = discord.Embed(title=title, color=0x00ff00)
+        new_embed = discord.Embed(title=title, color=config.COLOR_MAIN)
         if c_info['icon']:
             new_embed.set_thumbnail(url=c_info['icon'])
             
@@ -11427,7 +11427,7 @@ async def sync(interaction: discord.Interaction):
                     final_embed = discord.Embed(
                         title="Deal Confirmed ✅",
                         description=">>> The funds are now secured in escrow and verified on-chain.",
-                        color=0x00ff00
+                        color=config.COLOR_MAIN
                     )
                     final_embed.set_author(name="Transaction Verified", icon_url=VERIFIED_ICON_URL)
                     final_embed.add_field(name="Amount", value=f"`{received_amount}` {c_tag} (`${usd_val:.2f}` USD)", inline=False)
@@ -11474,7 +11474,7 @@ async def sync(interaction: discord.Interaction):
                      
                      embed = discord.Embed(
                          title="Payment Required",
-                         color=0x0000ff,
+                         color=config.COLOR_MAIN,
                          description="Please complete the payments below to continue the deal."
                      )
                      embed.add_field(
@@ -11665,7 +11665,7 @@ async def on_member_join(member):
 
         ),
 
-        color=0x0000ff
+        color=config.COLOR_MAIN
 
     )
 
@@ -11846,7 +11846,7 @@ async def on_message(message):
 
                 title="Funds Sent",
 
-                color=0x00ff00,
+                color=config.COLOR_MAIN,
 
                 description=description
 
@@ -12036,7 +12036,7 @@ async def send_transcript(channel, seller_id, buyer_id, txid: str | None = None)
 
             description=f"{base_desc}\n\nTranscript file attached below.",
 
-            color=0x0000ff
+            color=config.COLOR_MAIN
 
         )
 
@@ -12137,7 +12137,7 @@ async def send_transcript(channel, seller_id, buyer_id, txid: str | None = None)
             
             history_embed = discord.Embed(
                 title=title_text,
-                color=0x00ff00
+                color=config.COLOR_MAIN
             )
             
             
@@ -12196,7 +12196,7 @@ async def send_transcript(channel, seller_id, buyer_id, txid: str | None = None)
                         f"Your deal has been successfully processed and the transcript is available below.\n\n"
                         f"**Thank you for choosing RainyDay MM.** We look forward to serving you again!"
                     ),
-                    color=0x00ff00
+                    color=config.COLOR_MAIN
                 )
                 dm_embed_seller.add_field(name="🆔 Deal ID", value=f"`{deal_id_str}`", inline=True)
                 dm_embed_seller.add_field(name="💬 Channel", value=f"`{channel.name}`", inline=True)
@@ -12229,7 +12229,7 @@ async def send_transcript(channel, seller_id, buyer_id, txid: str | None = None)
                         f"Your deal has been successfully processed and the transcript is available below.\n\n"
                         f"**Thank you for choosing RainyDay MM.** We look forward to serving you again!"
                     ),
-                    color=0x00ff00
+                    color=config.COLOR_MAIN
                 )
                 dm_embed_buyer.add_field(name="🆔 Deal ID", value=f"`{deal_id_str}`", inline=True)
                 dm_embed_buyer.add_field(name="💬 Channel", value=f"`{channel.name}`", inline=True)

@@ -1,3 +1,4 @@
+import config
 import discord
 from discord.ext import commands, tasks
 from discord import app_commands
@@ -90,7 +91,7 @@ class Alerts(commands.Cog):
             description=(
                 f"I'll notify you when **{currency.upper()}** goes **{condition}** **{price:.2f} {fiat.upper()}**."
             ),
-            color=0x2ecc71
+            color=config.COLOR_MAIN
         )
         await interaction.response.send_message(embed=embed, ephemeral=True)
 

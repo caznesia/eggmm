@@ -1,4 +1,5 @@
 
+import config
 import discord
 from discord import app_commands
 from discord.ext import commands
@@ -37,7 +38,7 @@ class Calculator(commands.Cog):
         price = await get_cached_price(curr)
 
         if price > 0:
-            embed = discord.Embed(title=f"💰 Price of {curr.upper()}", color=0x00ff00)
+            embed = discord.Embed(title=f"💰 Price of {curr.upper()}", color=config.COLOR_MAIN)
             embed.add_field(name="USD Price", value=f"${price:,.2f}", inline=False)
             embed.set_footer(text=f"Updated: {datetime.datetime.now().strftime('%H:%M:%S')}")
             await interaction.followup.send(embed=embed)

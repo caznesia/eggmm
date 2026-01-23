@@ -1,3 +1,4 @@
+import config
 import discord
 from discord.ext import commands
 from discord import app_commands
@@ -25,7 +26,7 @@ class HelpView(discord.ui.View):
             embed.set_footer(text="Join our support server for more help!")
             
         elif category == "escrow":
-            embed = discord.Embed(title="🔒 Escrow & Deal Management", color=0x2ecc71)
+            embed = discord.Embed(title="🔒 Escrow & Deal Management", color=config.COLOR_MAIN)
             embed.add_field(name="/setup", value="Set up the bot in your server (Admin only).", inline=False)
             embed.add_field(name="Deal Creation", value="Deals are usually created via a 'Create Ticket' button in the escrow channel set by admins.", inline=False)
             embed.add_field(name="/add <user>", value="Add a user to your current deal ticket.", inline=False)

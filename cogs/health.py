@@ -1,4 +1,5 @@
 
+import config
 import discord
 from discord import app_commands
 from discord.ext import commands, tasks
@@ -47,7 +48,7 @@ class Health(commands.Cog):
         minutes, seconds = divmod(remainder, 60)
         uptime_str = f"{hours}h {minutes}m {seconds}s"
 
-        embed = discord.Embed(title="🏓 Pong!", color=0x00ff00)
+        embed = discord.Embed(title="🏓 Pong!", color=config.COLOR_MAIN)
         embed.add_field(name="Latency", value=f"{latency:.2f} ms", inline=True)
         embed.add_field(name="Database", value=db_status, inline=True)
         embed.add_field(name="Uptime", value=uptime_str, inline=False)
