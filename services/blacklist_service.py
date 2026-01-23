@@ -8,7 +8,7 @@ class BlacklistService:
     def __init__(self):
         self._cache = set()
         self._last_refresh = 0
-        self.CACHE_TTL = 300  # Reload every 5 minutes
+        self.CACHE_TTL = 300  
 
     def _load_cache(self):
         try:
@@ -26,8 +26,8 @@ class BlacklistService:
             logger.error(f"Failed to load blacklist cache: {e}")
 
     def is_blacklisted(self, user_id):
-        # Always return from memory cache instantly. 
-        # Cache is pre-warmed at startup and updated by add/remove commands.
+        
+        
         return str(user_id) in self._cache
 
     def add_user(self, user_id, reason, admin_id):
@@ -46,7 +46,7 @@ class BlacklistService:
                 finally:
                     cursor.close()
             
-            # Update cache immediately
+            
             self._cache.add(str(user_id))
             logger.info(f"User {user_id} added to blacklist by {admin_id}.")
             return True

@@ -8,11 +8,31 @@ from datetime import datetime
 import config
 
 class ProfileView(discord.ui.View):
-    def __init__(self, target_id):
-        super().__init__(timeout=120)
+    def __init__(self, target_id=None):
+        super().__init__(timeout=None)  
         self.target_id = target_id
+    
+    def get_target_id(self, interaction: discord.Interaction):
+        
+        if self.target_id:
+            return self.target_id
+        
+        
+        if interaction.message and interaction.message.embeds:
+            footer = interaction.message.embeds[0].footer.text
+            if footer and "ARCHIVE ID:" in footer:
+                try:
+                    archive_id = int(footer.split("ARCHIVE ID:")[-1].strip())
+                    
+                    
+                    return interaction.user.id
+                except:
+                    pass
+        
+        
+        return interaction.user.id
 
-    @discord.ui.button(label="Leaderboard", style=discord.ButtonStyle.secondary, emoji="📊")
+    @discord.ui.button(label="Leaderboard", style=discord.ButtonStyle.secondary, emoji="📊", custom_id="profile_leaderboard")
     async def leaderboard(self, interaction: discord.Interaction, button: discord.ui.Button):
         try:
             top_users = database.get_top_users(limit=10)
@@ -29,11 +49,12 @@ class ProfileView(discord.ui.View):
         except Exception as e:
             await interaction.response.send_message(f"Retrieval error: {e}", ephemeral=True)
 
-    @discord.ui.button(label="Achievements", style=discord.ButtonStyle.secondary, emoji="✨")
+    @discord.ui.button(label="Achievements", style=discord.ButtonStyle.secondary, emoji="✨", custom_id="profile_achievements")
     async def achievements(self, interaction: discord.Interaction, button: discord.ui.Button):
         try:
             from services.achievement_service import achievement_service
-            stats = database.get_gamified_stats(self.target_id)
+            target_id = self.get_target_id(interaction)
+            stats = database.get_gamified_stats(target_id)
             unlocked = set(stats.get('achievements', []))
             
             embed = discord.Embed(title="✨ Milestones", color=0x3498DB)
@@ -52,7 +73,7 @@ class ProfileView(discord.ui.View):
         except Exception as e:
             await interaction.response.send_message(f"Error: {e}", ephemeral=True)
 
-    @discord.ui.button(label="Ranks", style=discord.ButtonStyle.secondary, emoji="🏆")
+    @discord.ui.button(label="Ranks", style=discord.ButtonStyle.secondary, emoji="🏆", custom_id="profile_ranks")
     async def ranks(self, interaction: discord.Interaction, button: discord.ui.Button):
         ranks_desc = (
             "### 🏷️ TRADING PRESTIGE\n"
@@ -67,9 +88,10 @@ class ProfileView(discord.ui.View):
         embed = discord.Embed(title="Rank Information", description=ranks_desc, color=0xBDC3C7)
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    @discord.ui.button(label="Referral", style=discord.ButtonStyle.primary, emoji="🎁")
+    @discord.ui.button(label="Referral", style=discord.ButtonStyle.primary, emoji="🎁", custom_id="profile_referral")
     async def referral(self, interaction: discord.Interaction, button: discord.ui.Button):
-        stats = database.get_gamified_stats(self.target_id)
+        target_id = self.get_target_id(interaction)
+        stats = database.get_gamified_stats(target_id)
         code = stats.get('referral_code', 'N/A')
         await interaction.response.send_message(
             f"💰 **PARTNER BONUSES**\n\nInvite others to the network and earn commission.\n\n"
@@ -82,7 +104,7 @@ class Profile(commands.Cog):
         self.bot = bot
 
     def get_rank_info(self, level):
-        # Professional Prestige Colors
+        
         if level < 2: return "Novice Trader", 0xBDC3C7, "Apprentice"
         if level < 5: return "Apprentice", 0x3498DB, "Journeyman"
         if level < 10: return "Journeyman", 0x2ECC71, "Expert"
@@ -121,12 +143,12 @@ class Profile(commands.Cog):
         goal = next_lvl_xp - curr_lvl_xp
         percent = min(1.0, progress / goal) if goal > 0 else 1.0
         
-        # Elite High-Res Progress Bar
+        
         bar_len = 14
         filled = int(percent * bar_len)
         bar = "█" * filled + "▒" * (bar_len - filled)
         
-        # Dynamic Standing calculation
+        
         global_rank = max(1, 100 - (level * 2) - int(stats['volume']/5000))
         rank_suffix = "st" if global_rank == 1 else "nd" if global_rank == 2 else "rd" if global_rank == 3 else "th"
 
@@ -134,8 +156,8 @@ class Profile(commands.Cog):
         embed.set_author(name=f"{target.display_name.upper()} • TRADING PROFILE", icon_url=target.display_avatar.url)
         embed.set_thumbnail(url=target.display_avatar.url)
         
-        # Elite Header
-        # Using a more minimalist approach for the rank and standing
+        
+        
         owner_badge = " 👑 **OWNER**" if target.id in config.OWNER_IDS else ""
         
         embed.description = (
@@ -144,7 +166,7 @@ class Profile(commands.Cog):
             f"XP: `{stats['xp']}` / `{next_lvl_xp}`"
         )
 
-        # Primary Stats (Clean professional layout)
+        
         perf_box = (
             f"<:usd_symbo:1457992848686448661> **Volume:** `${stats['volume']:,.0f}`\n"
             f"🤝 **Deals:** `{stats['deals']}`\n"
@@ -152,7 +174,7 @@ class Profile(commands.Cog):
         )
         embed.add_field(name="📊 Performance", value=perf_box, inline=True)
         
-        # Secondary Stats
+        
         attr_box = (
             f"<a:16985fire:1457993180359295026> **Streak:** `{stats['streak']}` Days\n"
             f"✨ **Badges:** `{len(stats.get('badges', []))}` Earned\n"
@@ -160,7 +182,7 @@ class Profile(commands.Cog):
         )
         embed.add_field(name="✨ Attributes", value=attr_box, inline=True)
 
-        # Activity Logs
+        
         last_deal_str = "No recent records"
         if stats.get('last_deal_info'):
             ld = stats['last_deal_info']
@@ -168,14 +190,14 @@ class Profile(commands.Cog):
             crypto = ld.get('crypto', 0)
             raw_curr = str(ld.get('currency', 'LTC')).upper()
             
-            # Currency Emoji Mapping
+            
             curr_map = {
-                "USDT_POLYGON": "<:USDTpolygon:1457310679844524117>",
-                "USDT_BSC": "<:USDTBSC:1457310730423505009>",
-                "LTC": "<:LiteCoin:1457310421446037599>",
-                "BTC": "<:btc:1457310508691751017>",
-                "SOL": "<:solana:1457310634520608793>",
-                "ETH": "<:Ethereum:1457310556623999080>"
+                "USDT_POLYGON": "<:tether:1463096853498302669>",
+                "USDT_BSC": "<:tether:1463096853498302669>",
+                "LTC": "<:litecoin:1463098611029246013>",
+                "BTC": "<:bitcoin:1463096676352000056>",
+                "SOL": "<:solana:1463096910423523513>",
+                "ETH": "<:ethereum:1463096760363782309>"
             }
             curr_display = curr_map.get(raw_curr, f"`{raw_curr}`")
             last_deal_str = f"`${usd:,.2f}` ┃ `{crypto}` {curr_display}"
@@ -199,7 +221,7 @@ class Profile(commands.Cog):
         )
         embed.add_field(name="📑 Activity Logs", value=activity_box, inline=False)
 
-        # Footer
+        
         first_seen = stats.get('first_seen')
         if not first_seen:
              import time
@@ -217,7 +239,7 @@ class Profile(commands.Cog):
     async def profile_sync(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True)
         try:
-            self.bot.tree.copy_from(guild=interaction.guild) # No, just sync globally but force guild cache
+            self.bot.tree.copy_from(guild=interaction.guild) 
             await self.bot.tree.sync(guild=interaction.guild)
             await interaction.followup.send("✅ Guild command tree synced. Please restart your Discord client if errors persist.", ephemeral=True)
         except Exception as e:

@@ -17,19 +17,19 @@ class Alerts(commands.Cog):
 
     @tasks.loop(minutes=2)
     async def check_alerts(self):
-        """Background task to check all pending price alerts."""
+        
         alerts = alert_service.get_all_alerts()
         if not alerts:
             return
 
-        # Simple optimization: group alerts by (currency, fiat) to avoid duplicate price calls
+        
         price_cache = {}
         
         for alert in alerts:
             key = (alert['currency'], alert['fiat'])
             if key not in price_cache:
                 current_price = await get_cached_price(alert['currency'], alert['fiat'])
-                if isinstance(current_price, str): # "RATE_LIMIT" or error
+                if isinstance(current_price, str): 
                     continue
                 price_cache[key] = current_price
             
@@ -48,7 +48,7 @@ class Alerts(commands.Cog):
                 alert_service.delete_alert(alert['id'])
 
     async def notify_user(self, alert, current_price):
-        """Send a DM notification when an alert triggers."""
+        
         try:
             user = await self.bot.fetch_user(int(alert['user_id']))
             if not user:
@@ -62,14 +62,14 @@ class Alerts(commands.Cog):
                     f"**Current Price:** {current_price:.2f} {alert['fiat'].upper()}\n"
                     f"**Condition:** {alert['condition'].capitalize()}\n"
                 ),
-                color=0xf1c40f # Gold
+                color=0xf1c40f 
             )
             embed.set_footer(text="RainyDay MM | Stay ahead of the market")
             await user.send(embed=embed)
         except Exception as e:
             logger.error(f"Failed to notify user {alert['user_id']} for alert {alert['id']}: {e}")
 
-    # --- Commands ---
+    
 
     @app_commands.command(name="pricealert", description="Set a price alert for a cryptocurrency")
     @app_commands.describe(

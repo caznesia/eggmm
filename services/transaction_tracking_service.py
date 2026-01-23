@@ -3,7 +3,7 @@ from services.db_manager import db
 
 class TransactionTrackingService:
     def add_tracking(self, user_id, txid, currency, target_confs=1):
-        """Add a new transaction tracking request."""
+        
         with db.session() as conn:
             cursor = conn.cursor()
             cursor.execute(f"""
@@ -12,7 +12,7 @@ class TransactionTrackingService:
             """, (str(user_id), txid, currency.lower(), int(target_confs), time.time()))
 
     def get_user_tracking(self, user_id):
-        """Fetch all tracking requests for a specific user."""
+        
         with db.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(f"SELECT id, txid, currency, target_confs, status FROM transaction_tracking WHERE user_id = {db.p}", (str(user_id),))
@@ -32,7 +32,7 @@ class TransactionTrackingService:
             return tracking_list
 
     def get_all_pending_tracking(self):
-        """Fetch all pending tracking requests for the background task."""
+        
         with db.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(f"SELECT id, user_id, txid, currency, target_confs FROM transaction_tracking WHERE status = {db.p}", ('pending',))
@@ -52,13 +52,13 @@ class TransactionTrackingService:
             return tracking_list
 
     def update_tracking_status(self, tracking_id, status):
-        """Update the status of a tracking request."""
+        
         with db.session() as conn:
             cursor = conn.cursor()
             cursor.execute(f"UPDATE transaction_tracking SET status = {db.p} WHERE id = {db.p}", (status, tracking_id))
 
     def delete_tracking(self, tracking_id, user_id=None):
-        """Remove a tracking request."""
+        
         with db.session() as conn:
             cursor = conn.cursor()
             if user_id:

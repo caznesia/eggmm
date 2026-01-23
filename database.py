@@ -5,7 +5,7 @@ from services.db_manager import db
 
 logger = logging.getLogger("Database")
 
-# --- Performance Caching Layer ---
+
 class SimpleCache:
     def __init__(self, ttl=60):
         self.cache = {}
@@ -21,13 +21,14 @@ class SimpleCache:
     def set(self, key, data):
         self.cache[key] = (data, time.time())
 
-# TTL Caches for high-frequency queries
-STATS_CACHE = SimpleCache(ttl=60)      # Cache user stats for 60s
-LEADERBOARD_CACHE = SimpleCache(ttl=300) # Cache leaderboard for 5m
 
-# --- Global Memory Cache ---
+STATS_CACHE = SimpleCache(ttl=60)      
+LEADERBOARD_CACHE = SimpleCache(ttl=300) 
+
+
 GLOBAL_DEAL_CACHE = None
-cache_lock = None # Initialize lazily
+DIRTY_DEALS = set() 
+cache_lock = None 
 
 def create_deal_id(length: int = 64, prefix: str = ""):
     import string
@@ -37,8 +38,8 @@ def create_deal_id(length: int = 64, prefix: str = ""):
     return f"{prefix}{deal_id}" if prefix else deal_id
 
 def _row_to_dict(row):
-    """Convert DB row to deal dictionary"""
-    # Row: (deal_id, channel_id, buyer_id, seller_id, amount, currency, status, created_at, other_data)
+    
+    
     if not row:
         return None
         
@@ -54,8 +55,8 @@ def _row_to_dict(row):
     }
     
     other_data = row[8] if row[8] else {}
-    # If other_data is already a dict (psycopg2 handles JSONB automatically), use it. 
-    # If it's a string (SQLite), parse it.
+    
+    
     if isinstance(other_data, str):
         try:
             other_data = json.loads(other_data)
@@ -87,19 +88,25 @@ def load_all_data():
         return data
 
 def save_all_data(data):
-    """Save all data to DB (Background)"""
-    global GLOBAL_DEAL_CACHE
+    
+    global GLOBAL_DEAL_CACHE, DIRTY_DEALS
     GLOBAL_DEAL_CACHE = data
+    
+    if not DIRTY_DEALS:
+        return
+        
+    dirty_copy = list(DIRTY_DEALS)
+    DIRTY_DEALS.clear()
     
     import threading
     def _bg_save():
         try:
-            # Use list(data.items()) to avoid "dictionary changed size during iteration"
-            items_snapshot = list(data.items())
             with db.session() as conn:
                 cursor = conn.cursor()
-                for deal_id, info in items_snapshot:
-                    _upsert_deal_cursor(cursor, deal_id, info)
+                for deal_id in dirty_copy:
+                    info = data.get(deal_id)
+                    if info:
+                        _upsert_deal_cursor(cursor, deal_id, info)
                 if db.db_type == "sqlite":
                     cursor.close()
         except Exception as e:
@@ -119,7 +126,7 @@ def _upsert_deal_cursor(cursor, deal_id, info):
     schema_keys = {"deal_id", "channel_id", "buyer", "seller", "amount", "currency", "start_time", "status"}
     other_data = {k: v for k, v in info.items() if k not in schema_keys}
     
-    # Handle JSON serialization based on DB type
+    
     if db.db_type == "postgres":
         from psycopg2.extras import Json
         json_val = Json(other_data)
@@ -127,13 +134,13 @@ def _upsert_deal_cursor(cursor, deal_id, info):
         json_val = json.dumps(other_data)
 
     if db.db_type == "sqlite":
-        # Use INSERT OR REPLACE for SQLite to handle all unique constraints (deal_id and channel_id)
+        
         cursor.execute(f"""
             INSERT OR REPLACE INTO deals (deal_id, channel_id, buyer_id, seller_id, amount, currency, status, created_at, other_data)
             VALUES ({db.p}, {db.p}, {db.p}, {db.p}, {db.p}, {db.p}, {db.p}, {db.p}, {db.p})
         """, (deal_id, channel_id, buyer, seller, amount, currency, status, created_at, json_val))
     else:
-        # Postgres UPSERT
+        
         cursor.execute(f"""
             INSERT INTO deals (deal_id, channel_id, buyer_id, seller_id, amount, currency, status, created_at, other_data)
             VALUES ({db.p}, {db.p}, {db.p}, {db.p}, {db.p}, {db.p}, {db.p}, {db.p}, {db.p})
@@ -149,7 +156,7 @@ def _upsert_deal_cursor(cursor, deal_id, info):
         """, (deal_id, channel_id, buyer, seller, amount, currency, status, created_at, json_val))
 
 def save_deal_field_sync(deal_id, field, value):
-    """Synchronously updates a single field of a deal in the DB and cache."""
+    
     global GLOBAL_DEAL_CACHE
     data = load_all_data()
     if deal_id not in data:
@@ -157,6 +164,7 @@ def save_deal_field_sync(deal_id, field, value):
         
     data[deal_id][field] = value
     GLOBAL_DEAL_CACHE = data
+    DIRTY_DEALS.add(deal_id) 
     
     try:
         with db.session() as conn:
@@ -170,7 +178,7 @@ def save_deal_field_sync(deal_id, field, value):
         return False
 
 def load_counter():
-    # Sync with counter.json (User Request: "old stats")
+    
     file_val = 0
     try:
         import os
@@ -192,17 +200,17 @@ def load_counter():
         if row:
             db_val = int(row[0])
     
-    # Return max value and ensure DB is synced
+    
     final_val = max(file_val, db_val)
     
-    # If file was higher, update DB
+    
     if file_val > db_val:
-        save_counter(final_val) # This will update DB and overwrite file again (safe)
+        save_counter(final_val) 
         
     return final_val
 
 def save_counter(counter):
-    # Save to DB
+    
     with db.session() as conn:
         cursor = conn.cursor()
         cursor.execute(f"""
@@ -215,25 +223,125 @@ def save_counter(counter):
         if db.db_type == "sqlite":
             cursor.close()
             
-    # Save to counter.json
+    
     try:
         with open("counter.json", "w") as f:
             f.write(str(counter))
     except Exception as e:
         logger.error(f"Failed to write counter.json: {e}")
 
+
+
+
+
+def get_enabled_currencies():
+    
+    with db.get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(f"SELECT value FROM config WHERE key={db.p}", ('enabled_currencies',))
+        row = cursor.fetchone()
+        if db.db_type == "sqlite": cursor.close()
+        
+        if row and row[0]:
+            try:
+                import json
+                return json.loads(row[0])
+            except:
+                pass
+    return None 
+
+def toggle_currency_state(currency_code):
+    
+    import json
+    
+    
+    current = get_enabled_currencies()
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    pass 
+
+def set_enabled_currencies(currency_list):
+    
+    import json
+    val = json.dumps(currency_list)
+    
+    with db.session() as conn:
+        cursor = conn.cursor()
+        cursor.execute(f"""
+            INSERT INTO config (key, value) VALUES ({db.p}, {db.p})
+            ON CONFLICT (key) DO UPDATE SET value = excluded.value
+        """ if db.db_type == "sqlite" else f"""
+            INSERT INTO config (key, value) VALUES ({db.p}, {db.p})
+            ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value
+        """, ('enabled_currencies', val))
+        if db.db_type == "sqlite": cursor.close()
+
+
+def get_overflow_categories():
+    
+    with db.get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(f"SELECT value FROM config WHERE key={db.p}", ('overflow_categories',))
+        row = cursor.fetchone()
+        if db.db_type == "sqlite": cursor.close()
+        
+        if row and row[0]:
+            try:
+                return json.loads(row[0])
+            except:
+                pass
+    return []
+
+def add_overflow_category(category_id):
+    
+    current = get_overflow_categories()
+    if int(category_id) not in current:
+        current.append(int(category_id))
+        
+        val = json.dumps(current)
+        with db.session() as conn:
+            cursor = conn.cursor()
+            cursor.execute(f"""
+                INSERT INTO config (key, value) VALUES ({db.p}, {db.p})
+                ON CONFLICT (key) DO UPDATE SET value = excluded.value
+            """ if db.db_type == "sqlite" else f"""
+                INSERT INTO config (key, value) VALUES ({db.p}, {db.p})
+                ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value
+            """, ('overflow_categories', val))
+            if db.db_type == "sqlite": cursor.close()
 def get_deal_by_dealid(deal_id):
-    """Fetch deal from cache (Fast)"""
+    
     data = load_all_data()
     return data.get(deal_id)
 
 def get_deal_by_channel(channel_id):
-    """Fetch deal from cache by channel ID (Fast)"""
+    
     data = load_all_data()
     cid_str = str(channel_id)
+    
+    found = False
     for deal_id, deal in data.items():
         if str(deal.get('channel_id')) == cid_str:
             return deal_id, deal
+    
+    
+    print(f"[DEBUG] Deal lookup failed for Channel ID: {cid_str}. Cache Size: {len(data)}")
+    
     return None, None
 
 def get_deal_by_address(address):
@@ -241,10 +349,10 @@ def get_deal_by_address(address):
         cursor = conn.cursor()
         
         if db.db_type == "postgres":
-             # Query: other_data ->> 'address' = ?
+             
             query = f"SELECT deal_id, channel_id, buyer_id, seller_id, amount, currency, status, created_at, other_data FROM deals WHERE other_data ->> 'address' = {db.p}"
         else:
-             # SQLite: json_extract
+             
             query = f"SELECT deal_id, channel_id, buyer_id, seller_id, amount, currency, status, created_at, other_data FROM deals WHERE json_extract(other_data, '$.address') = {db.p}"
 
         cursor.execute(query, (address,))
@@ -257,16 +365,17 @@ def get_deal_by_address(address):
     return None, None
 
 def update_deal(channel_id, deal_data):
-    """Update deal in cache and DB synchronously for reliability"""
+    
     global GLOBAL_DEAL_CACHE
     deal_id = deal_data.get("deal_id") or str(channel_id)
     
-    # Update cache
+    
     data = load_all_data()
     data[deal_id] = deal_data
     GLOBAL_DEAL_CACHE = data
+    DIRTY_DEALS.add(deal_id)
 
-    # Sync Save (small enough that sync is better for ACID)
+    
     try:
         with db.session() as conn:
             cursor = conn.cursor()
@@ -276,9 +385,9 @@ def update_deal(channel_id, deal_data):
     except Exception as e:
         logger.error(f"update_deal failed: {e}")
 
-# =====================================================
-# USER STATS (Leaderboard)
-# =====================================================
+
+
+
 
 def load_user_stats():
     with db.get_connection() as conn:
@@ -304,7 +413,7 @@ def update_user_stats(user_id: int, amount_usd: float, crypto_amount: float = 0.
     now = datetime.utcnow()
     today_str = now.strftime('%Y-%m-%d')
     
-    # XP formula: 10 XP per deal + 1 XP per $10 volume (capped at 50 XP volume bonus)
+    
     xp_gain = 10 + min(50, int(amount_usd / 10))
     import time
     timestamp = time.time()
@@ -319,7 +428,7 @@ def update_user_stats(user_id: int, amount_usd: float, crypto_amount: float = 0.
     with db.session() as conn:
         cursor = conn.cursor()
         
-        # Get current streak data
+        
         cursor.execute(f"SELECT current_streak, highest_streak, last_deal_date FROM users WHERE user_id = {db.p}", (uid,))
         row = cursor.fetchone()
         
@@ -331,16 +440,16 @@ def update_user_stats(user_id: int, amount_usd: float, crypto_amount: float = 0.
             current_streak, highest_streak, last_deal_date = row
             
             if last_deal_date == today_str:
-                # Already did a deal today, streak stays the same
+                
                 pass
             elif last_deal_date:
                 from datetime import timedelta
                 last_date = datetime.strptime(last_deal_date, '%Y-%m-%d')
                 if (now.date() - last_date.date()) == timedelta(days=1):
-                    # Next day! Increment streak
+                    
                     current_streak += 1
                 else:
-                    # Missed a day or more, reset streak
+                    
                     current_streak = 1
             else:
                 current_streak = 1
@@ -368,7 +477,7 @@ def update_user_stats(user_id: int, amount_usd: float, crypto_amount: float = 0.
             cursor.close()
 
 def get_gamified_stats(user_id):
-    """Fetch all gamification data for a user with TTL caching."""
+    
     cached = STATS_CACHE.get(user_id)
     if cached: return cached
 
@@ -404,10 +513,10 @@ def get_gamified_stats(user_id):
                 try: last_deal_info = json.loads(last_deal_info)
                 except: last_deal_info = None
 
-            # Legacy Backfill: If last_deal_info is missing, fetch from deals table
-            if not last_deal_info and row[0] > 0: # row[0] is deals_completed
+            
+            if not last_deal_info and row[0] > 0: 
                 try:
-                    # Comprehensive status list for completed deals
+                    
                     cursor.execute(f"""
                         SELECT amount, currency, other_data, created_at 
                         FROM deals 
@@ -423,10 +532,10 @@ def get_gamified_stats(user_id):
                              try: d_other = json.loads(d_other)
                              except: d_other = {}
                         
-                        # Handle varied amount keys (ltc_amount is common, fallback to secured_amount)
+                        
                         crypto_amt = d_other.get('ltc_amount', d_other.get('secured_amount', 0.0))
                         
-                        # Format date
+                        
                         from datetime import datetime
                         d_str = datetime.fromtimestamp(d_date).strftime('%Y-%m-%d') if d_date else "Legacy"
                         
@@ -437,7 +546,7 @@ def get_gamified_stats(user_id):
                             "date": d_str
                         }
                         
-                        # Use the existing connection to update (safer for some DB drivers)
+                        
                         cursor.execute(f"UPDATE users SET last_deal_info = {db.p} WHERE user_id = {db.p}", (json.dumps(last_deal_info), str(user_id)))
                         print(f"[BACKFILL] Successfully loaded legacy deal for UID {user_id}: {last_deal_info}")
                     else:
@@ -477,20 +586,20 @@ def get_gamified_stats(user_id):
         }
 
 def update_user_metadata(user_id, chain=None, language=None, fast_deal=False):
-    """Update non-volume metadata for achievements."""
+    
     uid = str(user_id)
     with db.session() as conn:
         cursor = conn.cursor()
         
         if language:
-             # Logic to check if its a new language would be complex without loading first.
-             # We skip for now and just set to a higher value if needed, 
-             # but better to have a proper 'languages_used_list' column.
-             # For now, let's just increment if its not 'en'.
+             
+             
+             
+             
              pass
 
         if chain:
-             # Get current used_chains
+             
              cursor.execute(f"SELECT used_chains FROM users WHERE user_id = {db.p}", (uid,))
              row = cursor.fetchone()
              chains = []
@@ -511,7 +620,7 @@ def update_achievements(user_id, achievements_list):
     json_val = json.dumps(achievements_list)
     with db.session() as conn:
         cursor = conn.cursor()
-        # Find the new achievement if achievements_list grew
+        
         cursor.execute(f"SELECT achievements FROM users WHERE user_id = {db.p}", (uid,))
         row = cursor.fetchone()
         old_list = []
@@ -522,7 +631,7 @@ def update_achievements(user_id, achievements_list):
         new_ach = None
         for a in achievements_list:
             if a not in old_list:
-                new_ach = a # Found the newest one
+                new_ach = a 
                 break
 
         if new_ach:
@@ -543,7 +652,7 @@ def update_badges(user_id, badges_list):
             cursor.close()
 
 def get_top_users(limit=10):
-    """Fetch top users by volume with TTL caching for high-concurrency."""
+    
     cache_key = f"top_{limit}"
     cached = LEADERBOARD_CACHE.get(cache_key)
     if cached: return cached
@@ -563,11 +672,11 @@ def get_top_users(limit=10):
         for row in rows:
             result.append((str(row[0]), {"deals": row[1], "volume": row[2]}))
         
-        LEADERBOARD_CACHE.set(cache_key, result) # Cache for 5 mins
+        LEADERBOARD_CACHE.set(cache_key, result) 
         return result
 
 def get_single_user_stats(user_id):
-    """Fetch stats for a single user efficiently."""
+    
     with db.get_connection() as conn:
         cursor = conn.cursor()
         cursor.execute(f"SELECT deals_completed, volume_usd FROM users WHERE user_id = {db.p}", (str(user_id),))

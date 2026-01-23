@@ -1,18 +1,18 @@
 
 import discord
 import logging
-from config import VC_STATS_CHANNEL_ID # fallback or new config
+import config
 import os
 
 logger = logging.getLogger("NotificationService")
 
 class NotificationService:
     def __init__(self):
-        # Allow env var override for public log channel
-        self.public_log_channel_id = os.getenv("PUBLIC_LOG_CHANNEL_ID")
+        
+        self.public_log_channel_id = config.PUBLIC_LOG_CHANNEL_ID
 
     async def send_dm(self, user: discord.User, content: str = None, embed: discord.Embed = None):
-        """Safe DM sending with error handling"""
+        
         if not user:
             return False
         
@@ -27,7 +27,7 @@ class NotificationService:
             return False
 
     async def post_public_log(self, guild: discord.Guild, embed: discord.Embed):
-        """Post completed deal to public channel"""
+        
         if not self.public_log_channel_id:
             return
 

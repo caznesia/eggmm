@@ -4,15 +4,112 @@ from web3 import Web3
 from eth_account import Account
 from bitcoinrpc.authproxy import AuthServiceProxy
 import config
+from services import get_session
+import bitcoinutils.constants as btc_constants
+from bitcoinutils.setup import setup
+from bitcoinutils.keys import PrivateKey as BtcPrivateKey, P2pkhAddress
+from bitcoinutils.transactions import Transaction, TxInput, TxOutput
+
+
+def setup_btcutils(network='litecoin'):
+    if network == 'litecoin':
+        btc_constants.NETWORK_P2PKH_PREFIXES["litecoin"] = b"\x30"
+        btc_constants.NETWORK_WIF_PREFIXES["litecoin"] = b"\xb0"
+        setup('litecoin')
+    elif network == 'dogecoin':
+        btc_constants.NETWORK_P2PKH_PREFIXES["dogecoin"] = b"\x1e"
+        btc_constants.NETWORK_WIF_PREFIXES["dogecoin"] = b"\x9e"
+        setup('dogecoin')
+    else:
+        setup('mainnet')
 
 def dbg(msg):
-    # Consider using proper logging later
-    print(f"[LTC-DEBUG] {msg}")
+    
+    print(f"[UTXO-DEBUG] {msg}")
+
+async def sweep_utxo_address(privkey_wif, to_address, network='litecoin'):
+    
+    import requests
+    setup_btcutils(network)
+    
+    try:
+        priv = BtcPrivateKey(privkey_wif)
+        from_pub = priv.get_public_key()
+        from_addr = from_pub.get_address().to_string()
+        
+        
+        utxos = []
+        if network == 'mainnet': 
+            url = f"https://mempool.space/api/address/{from_addr}/utxo"
+            resp = requests.get(url, timeout=10).json()
+            for u in resp:
+                if u['status']['confirmed']:
+                    utxos.append({'txid': u['txid'], 'vout': u['vout'], 'value': u['value']})
+        elif network == 'litecoin':
+            url = f"https://api.blockcypher.com/v1/ltc/main/addrs/{from_addr}?unspentOnly=true"
+            resp = requests.get(url, timeout=10).json()
+            for u in resp.get('txrefs', []):
+                if u.get('confirmations', 0) > 0:
+                    utxos.append({'txid': u['txid'], 'vout': u['tx_output_n'], 'value': u['value']})
+        elif network == 'dogecoin':
+            
+            url = f"https://api.blockcypher.com/v1/doge/main/addrs/{from_addr}?unspentOnly=true"
+            resp = requests.get(url, timeout=10).json()
+            for u in resp.get('txrefs', []):
+                if u.get('confirmations', 0) > 0:
+                    utxos.append({'txid': u['txid'], 'vout': u['tx_output_n'], 'value': u['value']})
+
+        if not utxos:
+            return None 
+            
+        
+        inputs = [TxInput(u['txid'], u['vout']) for u in utxos]
+        total_in = sum(u['value'] for u in utxos)
+        
+        
+        
+        est_vsize = len(inputs) * 148 + 1 * 34 + 10
+        fee_rate = 20 
+        
+        
+        if network == 'mainnet':
+            try:
+                fr = requests.get("https://mempool.space/api/v1/fees/recommended", timeout=5).json()
+                fee_rate = fr.get('hourFee', 20)
+            except: pass
+        
+        fee_sats = int(est_vsize * fee_rate)
+        if network == 'dogecoin': fee_sats = int(1 * 10**8) 
+        
+        send_sats = total_in - fee_sats
+        if send_sats <= 546: 
+            return None
+            
+        
+        outputs = [TxOutput(send_sats, P2pkhAddress(to_address))]
+        tx = Transaction(inputs, outputs)
+        
+        
+        script_pub_key = P2pkhAddress(from_addr).to_script_pub_key()
+        for i in range(len(inputs)):
+            sig = priv.sign_input(tx, i, script_pub_key)
+            tx.inputs[i].script_sig = sig
+            
+        raw_hex = tx.serialize()
+        
+        
+        if network == 'mainnet': return await rpc_btc_async("sendrawtransaction", raw_hex)
+        elif network == 'dogecoin': return await rpc_doge_async("sendrawtransaction", raw_hex)
+        else: return await rpc_async("sendrawtransaction", raw_hex)
+        
+    except Exception as e:
+        dbg(f"Sweep for {network} failed: {e}")
+        return None
 
 async def safe_rpc_call(func, *args, retries=5, delay=1):
     for i in range(retries):
         try:
-            # Check if func is awaitable (coroutine) or regular function
+            
             if asyncio.iscoroutinefunction(func):
                 return await func(*args)
             else:
@@ -22,22 +119,112 @@ async def safe_rpc_call(func, *args, retries=5, delay=1):
             await asyncio.sleep(delay)
     raise Exception("RPC failed after retries")
 
-# --- RPC Helpers ---
 
-def rpc_call(method, *params):
-    """Single RPC call to LTC node (blocking)."""
-    # Uses RPC_URL from config which contains auth info
-    rpc = AuthServiceProxy(config.RPC_URL, timeout=10)
-    return getattr(rpc, method)(*params)
+
+
+
+async def unified_rpc_async(url, method, *params):
+    
+    import aiohttp
+    import json
+    
+    if not url:
+        return None
+        
+    
+    if "127.0.0.1" in url or "@" in url:
+        try:
+             def sync_call():
+                 rpc = AuthServiceProxy(url, timeout=15)
+                 return getattr(rpc, method)(*params)
+             return await asyncio.to_thread(sync_call)
+        except Exception as e:
+             
+             raise e
+
+    
+    payload = {
+        "jsonrpc": "2.0",
+        "id": "rainybot",
+        "method": method,
+        "params": params
+    }
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, json=payload, timeout=10) as resp:
+                if resp.status != 200:
+                    raise Exception(f"HTTP {resp.status}")
+                result = await resp.json()
+                if 'error' in result and result['error']:
+                    raise Exception(f"RPC Error: {result['error']}")
+                return result.get('result')
+    except Exception as e:
+        raise e
 
 async def rpc_async(method, *params):
-    """Async wrapper for blocking RPC calls using threads."""
-    return await asyncio.to_thread(rpc_call, method, *params)
+    
+    return await unified_rpc_async(config.RPC_URL, method, *params)
 
-# --- Balance Checks ---
+async def rpc_btc_async(method, *params):
+    
+    return await unified_rpc_async(config.BTC_RPC_URL, method, *params)
+
+async def rpc_doge_async(method, *params):
+    
+    return await unified_rpc_async(config.DOGE_RPC_URL, method, *params)
+
+async def get_doge_balance_public(address):
+    
+    import aiohttp
+    
+    
+    try:
+        url = f"https://api.blockcypher.com/v1/doge/main/addrs/{address}/balance"
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, timeout=5) as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    
+                    return float(data.get('final_balance', 0)) / 1e8
+    except Exception as e:
+        print(f"[Doge-Public-Err] BlockCypher: {e}")
+
+    
+    try:
+        url = f"https://dogechain.info/api/v1/address/balance/{address}"
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, timeout=5) as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    
+                    if data.get('success') == 1:
+                        return float(data.get('balance', 0.0))
+    except Exception as e:
+        print(f"[Doge-Public-Err] DogeChain: {e}")
+
+    
+    try:
+        url = f"https://sochain.com/api/v2/get_address_balance/DOGE/{address}"
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, timeout=5) as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    
+                    if data.get('status') == 'success':
+                         bal_str = data['data']['confirmed_balance']
+                         return float(bal_str)
+    except Exception as e:
+        print(f"[Doge-Public-Err] SoChain: {e}")
+
+    except Exception as e:
+        print(f"[Doge-Public-Err] SoChain: {e}")
+
+    raise Exception("All Doge public APIs failed")
+
+
 
 async def get_gas_balance(address, currency):
-    """Return BNB (for BEP20) or MATIC (for Polygon) balance using AsyncWeb3"""
+    
     from web3 import AsyncWeb3, AsyncHTTPProvider
     try:
         rpc_urls = []
@@ -48,6 +235,7 @@ async def get_gas_balance(address, currency):
         else:
             return 0.0
 
+        session = await get_session()
         for rpc in rpc_urls:
             w3 = None
             try:
@@ -65,12 +253,13 @@ async def get_gas_balance(address, currency):
     except Exception as e:
         print(f"Gas balance error ({currency}): {e}")
 
-    return 0.0
+    raise Exception(f"All Gas RPCs failed for {currency}")
 
 async def get_eth_balance_parallel(address):
-    """Get ETH balance from multiple RPCs in parallel (Async)."""
+    
     from web3 import AsyncWeb3, AsyncHTTPProvider
     
+    session = await get_session()
     async def fetch_balance(rpc_url):
         w3 = None
         try:
@@ -95,15 +284,17 @@ async def get_eth_balance_parallel(address):
             for p in pending: p.cancel()
             return res
             
-    return 0.0
+    
+    raise Exception("All RPCs failed for ETH balance check")
 
 
 
 async def get_last_eth_txhash(address):
-    """Get last incoming ETH transaction hash using AsyncWeb3"""
+    
     from web3 import AsyncWeb3, AsyncHTTPProvider
     address_checksum = Web3.to_checksum_address(address)
     
+    session = await get_session()
     async def fetch_last_tx(rpc_url):
         w3 = None
         try:
@@ -139,14 +330,15 @@ async def get_last_eth_txhash(address):
     
     return None
 
-# --- Transaction Helpers ---
+
 
 async def send_eth(private_key, to_address, amount_eth=None):
-    """Sends ETH using AsyncWeb3."""
+    
     from web3 import AsyncWeb3, AsyncHTTPProvider
     account = Account.from_key(private_key)
     from_address = account.address
 
+    session = await get_session()
     for rpc_url in config.ETH_RPC_URLS:
         w3 = None
         try:
@@ -200,12 +392,13 @@ async def send_eth(private_key, to_address, amount_eth=None):
     raise Exception("All ETH RPC endpoints failed")
 
 async def estimate_required_gas(contract_address, private_key, to_address, amount, rpc_urls, decimals):
-    """Estimate gas using AsyncWeb3."""
+    
     from web3 import AsyncWeb3, AsyncHTTPProvider
     account = Account.from_key(private_key)
     from_addr = account.address
     amount_wei = int(amount * (10 ** decimals))
 
+    session = await get_session()
     for rpc in rpc_urls:
         w3 = None
         try:
@@ -244,11 +437,12 @@ async def estimate_required_gas(contract_address, private_key, to_address, amoun
     return None
 
 async def send_native_chain_generic(private_key, to_address, amount_native, rpc_urls, chain_id):
-    """Sends native token using AsyncWeb3."""
+    
     from web3 import AsyncWeb3, AsyncHTTPProvider
     account = Account.from_key(private_key)
     from_address = account.address
 
+    session = await get_session()
     for rpc_url in rpc_urls:
         w3 = None
         try:
@@ -261,20 +455,26 @@ async def send_native_chain_generic(private_key, to_address, amount_native, rpc_
             nonce = await nonce_manager.get_next_nonce(w3, from_address)
             
             gas_price = await w3.eth.gas_price
-            if chain_id == 137: # Polygon
+            if chain_id == 137: 
                 gas_price = int(gas_price * 1.5)
             
             gas_limit = 21000
             gas_cost = gas_limit * gas_price
-            amount_wei = w3.to_wei(amount_native, 'ether')
             
-            if balance < (amount_wei + gas_cost):
-                raise Exception(f"Insufficient native balance. Need {amount_wei+gas_cost}, have {balance}")
+            if amount_native is None:
+                amount_to_send_wei = balance - gas_cost
+            else:
+                amount_to_send_wei = w3.to_wei(amount_native, 'ether')
+                if balance < (amount_to_send_wei + gas_cost):
+                    amount_to_send_wei = balance - gas_cost
+
+            if amount_to_send_wei <= 0:
+                raise Exception("Insufficient balance to cover gas fees")
 
             tx = {
                 "nonce": nonce,
                 "to": Web3.to_checksum_address(to_address),
-                "value": amount_wei,
+                "value": amount_to_send_wei,
                 "gas": gas_limit,
                 "gasPrice": gas_price,
                 "chainId": chain_id

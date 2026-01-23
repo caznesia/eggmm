@@ -4,7 +4,7 @@ import asyncio
 import os
 import logging
 
-# Configure logging
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -37,7 +37,7 @@ import eth_account
 
 from bitcoinrpc.authproxy import AuthServiceProxy
 
-# internal modules
+
 import config
 from config import *
 from database import *
@@ -54,12 +54,12 @@ from services.notification_service import notification_service
 from services.achievement_service import achievement_service
 from services.localization_service import localization_service
 
-# Initialize global RPC for legacy support
+
 rpc = AuthServiceProxy(RPC_URL)
 
-# =====================================================
-# GLOBAL VARIABLES
-# =====================================================
+
+
+
 
 TICKET_LOCK = asyncio.Lock()
 pending_force_actions = {}
@@ -75,7 +75,7 @@ async def global_interaction_check(interaction: discord.Interaction) -> bool:
 
 @bot.tree.error
 async def on_app_command_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
-    """Global error handler for all application commands."""
+    
     if isinstance(error, app_commands.CommandOnCooldown):
         msg = f"⏱️ **Cooldown Active**\nPlease wait `{error.retry_after:.1f}s` before using this command again."
         return await (interaction.response.send_message(msg, ephemeral=True) if not interaction.response.is_done() else interaction.followup.send(msg, ephemeral=True))
@@ -84,10 +84,10 @@ async def on_app_command_error(interaction: discord.Interaction, error: app_comm
         msg = "🚫 **Permission Denied**\nYou do not have the required permissions to execute this command."
         return await (interaction.response.send_message(msg, ephemeral=True) if not interaction.response.is_done() else interaction.followup.send(msg, ephemeral=True))
 
-    # Log unexpected errors for developers
+    
     logger.error(f"[Interaction Error] {error}")
     
-    # Generic failure response
+    
     msg = "⚠️ **System Error**\nAn unexpected error occurred. The development team has been notified. Please try again later."
     try:
         if interaction.response.is_done():
@@ -97,30 +97,30 @@ async def on_app_command_error(interaction: discord.Interaction, error: app_comm
     except: pass
 
 async def setup_hook():
-    # 0. One-time Migration from data.json to Database
+    
     try:
         if os.path.exists("data.json"):
             logger.info("[MIGRATION] legacy data.json found. Migrating to database...")
             with open("data.json", "r") as f:
                 legacy_data = json.load(f)
-            save_all_data(legacy_data) # This now saves to DB via database.py
+            save_all_data(legacy_data) 
             os.rename("data.json", "data.json.migrated")
             logger.info("[MIGRATION] Migration complete. data.json moved to data.json.migrated.")
         else:
-            # Pre-load Global Data Cache from DB if no migration needed
+            
             load_all_data() 
             logger.info("[INFO] Global deal data cache pre-warmed from DB.")
     except Exception as e:
         logger.error(f"[ERROR] Migration/Pre-load failed: {e}")
 
-    # 1. Pre-warm Blacklist Cache (Database call)
+    
     try:
         blacklist_service._load_cache()
         logger.info("[INFO] Blacklist cache pre-warmed.")
     except Exception as e:
         logger.error(f"[ERROR] Blacklist pre-warm failed: {e}")
 
-    # 2. Pre-warm Deal Counter Cache (File I/O)
+    
     try:
         load_counter()
         logger.info("[INFO] Counter cache pre-warmed.")
@@ -129,7 +129,7 @@ async def setup_hook():
 
     bot.tree.interaction_check = global_interaction_check
     
-    # Register Persistent Views for Restart Tolerance
+    
     bot.add_view(StartDealView())
     bot.add_view(SendButton())
     bot.add_view(ConfButtons())
@@ -141,31 +141,31 @@ async def setup_hook():
     logger.info("[INFO] Global interaction check and Persistent Views registered.")
 
 bot.setup_hook = setup_hook
-# Global session and pricing functions are now managed in services.price_service
-# Optimized I/O functions now served from database.py caching layer
-# Redundant load_all_data / save_all_data removed from main.py
-
-
-
-# Helper functions load_counter, save_counter, get_deal_by_dealid are now imported from database.py
 
 
 
 
-# Redundant channel/address lookup helpers removed here as they are imported from database.py
+
+
+
+
+
+
+
+
 
 
 
 async def deal_id_autocomplete(interaction: discord.Interaction, current: str):
-    """Autocomplete for deal_id, prioritizing the current channel's deal."""
+    
     choices = []
     
-    # Check if we are in a deal channel
+    
     did, _ = get_deal_by_channel(interaction.channel_id)
     if did:
         choices.append(app_commands.Choice(name=f"Current Ticket: {did}", value=did))
     
-    # Discord limits to 25 choices
+    
     return choices
 
 
@@ -176,7 +176,7 @@ async def deal_id_autocomplete(interaction: discord.Interaction, current: str):
 
 
 
-# safe_rpc_call is imported from crypto_utils.py (async version)
+
 
 
 
@@ -189,16 +189,16 @@ def dbg(msg):
     logger.debug(f"[LTC-DEBUG] {msg}")
 
 def format_crypto_amount(amount):
-    """Formats crypto amount to avoid scientific notation and show relevant decimals."""
+    
     if amount is None: return "0.0"
     try:
-        # Avoid scientific notation for small amounts
+        
         return f"{float(amount):.8f}".rstrip('0').rstrip('.') or "0.0"
     except:
         return str(amount)
 
 def get_currency_info(currency):
-    """Returns metadata (name, icon) for a given currency."""
+    
     currency_data = {
         'ltc': {
             'name': 'Litecoin (LTC)',
@@ -239,7 +239,7 @@ def get_currency_info(currency):
 
 
 async def get_gas_balance(address, currency):
-    """Return BNB (for BEP20) or MATIC (for Polygon) balance using AsyncWeb3"""
+    
     from web3 import AsyncWeb3, AsyncHTTPProvider
     try:
         if currency == "usdt_bep20":
@@ -353,17 +353,17 @@ async def safe_respond(interaction, *, content=None, embed=None, view=None, ephe
 
         return False
 
-# =====================================================
 
-# WALLET GENERATION
 
-# =====================================================
+
+
+
 
 
 
 def generate_evm_wallet():
 
-    """Generate new EVM wallet for ETH/USDT transactions"""
+    
 
     account = eth_account.Account.create()
 
@@ -385,7 +385,7 @@ import asyncio
 
 def rpc_call(method, *params):
 
-    """Single RPC call with a fresh connection (safe for async)."""
+    
 
     rpc = AuthServiceProxy(RPC_URL, timeout=10)
 
@@ -397,7 +397,7 @@ def rpc_call(method, *params):
 
 async def rpc_async(method, *params):
 
-    """Async wrapper using threads."""
+    
 
     return await asyncio.to_thread(rpc_call, method, *params)
 
@@ -407,7 +407,7 @@ async def rpc_async(method, *params):
 
 async def generate_ltc_wallet(deal_id):
 
-    """Generate LTC wallet safely using a NEW RPC connection for every call."""
+    
 
     label = f"deal_{deal_id}"
 
@@ -415,25 +415,25 @@ async def generate_ltc_wallet(deal_id):
 
     try:
 
-        # load wallet ALWAYS with new connection
+        
 
         await rpc_async("loadwallet", "rainyday")
 
     except:
 
-        pass  # already loaded
+        pass  
 
 
 
     try:
 
-        # SAFE new address
+        
 
         address = await rpc_async("getnewaddress", label)
 
 
 
-        # SAFE private key dump (optional)
+        
 
         private_key = await rpc_async("dumpprivkey", address)
 
@@ -466,9 +466,9 @@ def generate_solana_wallet():
 
 
 
-    # Secret key = 64 bytes (32 private + 32 public)
+    
 
-    secret_key_bytes = bytes(kp)  # THIS RETURNS ALL 64 BYTES
+    secret_key_bytes = bytes(kp)  
 
     secret_key_b58 = base58.b58encode(secret_key_bytes).decode()
 
@@ -486,7 +486,7 @@ def generate_solana_wallet():
 
 async def generate_wallet_for_currency(deal_id, currency):
 
-    """Generate wallet based on selected currency"""
+    
 
     if currency == 'ltc':
 
@@ -506,16 +506,16 @@ async def generate_wallet_for_currency(deal_id, currency):
 
 
 
-# =====================================================
 
-# ETHEREUM FUNCTIONS
 
-# =====================================================
+
+
+
 
 
 
 async def get_eth_balance_parallel(address):
-    """Get ETH balance from multiple RPCs. Returns the HIGHEST balance found (solves RPC lag)."""
+    
     from web3 import AsyncWeb3, AsyncHTTPProvider
     
     async def fetch_balance(rpc_url):
@@ -526,11 +526,11 @@ async def get_eth_balance_parallel(address):
                 return 0.0
             
             addr_checksum = AsyncWeb3.to_checksum_address(address)
-            # Check both latest and pending. Pending allows detection before mining!
+            
             balance_latest = await w3.eth.get_balance(addr_checksum, 'latest')
             balance_pending = await w3.eth.get_balance(addr_checksum, 'pending')
             
-            # Use the maximum to catch unconfirmed incoming funds
+            
             balance_wei = max(balance_latest, balance_pending)
             return float(balance_wei / (10 ** 18))
         except:
@@ -540,7 +540,7 @@ async def get_eth_balance_parallel(address):
                 try: await w3.provider.session.close()
                 except: pass
             
-    # Run ALL in parallel and take the MAX
+    
     tasks = [fetch_balance(url) for url in ETH_RPC_URLS]
     results = await asyncio.gather(*tasks, return_exceptions=True)
     
@@ -551,7 +551,7 @@ async def get_eth_balance_parallel(address):
 
 
 async def get_eth_block_number():
-    """Get current ETH block number from multiple RPCs using AsyncWeb3"""
+    
     from web3 import AsyncWeb3, AsyncHTTPProvider
     async def fetch_block(rpc_url):
         w3 = None
@@ -570,7 +570,7 @@ async def get_eth_block_number():
     return max(valid) if valid else 0
 
 async def get_solana_slot():
-    """Get current Solana slot from multiple RPCs"""
+    
     session = await get_session()
     async def fetch_slot(rpc_url):
         try:
@@ -588,7 +588,7 @@ async def get_solana_slot():
 
 
 async def get_last_eth_txhash(address):
-    """Get last incoming ETH transaction hash using robust parallel RPCs."""
+    
     from web3 import AsyncWeb3, AsyncHTTPProvider
     
     addr_lower = address.lower()
@@ -600,14 +600,14 @@ async def get_last_eth_txhash(address):
             if not await w3.is_connected():
                 return None
             
-            # Get latest block
+            
             latest_block = await w3.eth.block_number
             
-            # Check last 50 blocks (~10 minutes) for reliability
+            
             for block_num in range(latest_block, latest_block - 50, -1):
                 if block_num <= 0: break
                 try:
-                    # BLOCK FETCH MUST BE AWAITED
+                    
                     block = await w3.eth.get_block(block_num, full_transactions=True)
                     if not block or not block.transactions: continue
                     
@@ -636,10 +636,7 @@ async def get_last_eth_txhash(address):
 
 
 async def check_eth_balance_sufficient(address, amount_eth=None, rpc_urls=None):
-    """
-    Check if an address has sufficient ETH balance to send a transaction.
-    Returns (is_sufficient, balance, required, error_message)
-    """
+    
     from web3 import AsyncWeb3, AsyncHTTPProvider
     
     if rpc_urls is None:
@@ -655,14 +652,14 @@ async def check_eth_balance_sufficient(address, amount_eth=None, rpc_urls=None):
             checksum_addr = AsyncWeb3.to_checksum_address(address)
             balance = await w3.eth.get_balance(checksum_addr)
             
-            # Estimate gas cost
+            
             gas_limit = 21000
             gas_price = await w3.eth.gas_price
             fast_gas_price = int(gas_price * 1.5)
             gas_cost = gas_limit * fast_gas_price
             
             if amount_eth is None:
-                # For sweep operations, just need to cover gas
+                
                 required = gas_cost
                 send_amount = balance - gas_cost
             else:
@@ -693,7 +690,7 @@ async def check_eth_balance_sufficient(address, amount_eth=None, rpc_urls=None):
 
 
 async def send_eth(private_key, to_address, amount=None, nonce=None):
-    """Sends ETH using AsyncWeb3 (Supports manual nonce & Detailed logging)."""
+    
     from eth_account import Account
     from web3 import AsyncWeb3, AsyncHTTPProvider
 
@@ -701,7 +698,7 @@ async def send_eth(private_key, to_address, amount=None, nonce=None):
     from_address = acc.address
     last_error = "No RPC connected"
 
-    # Map currency to correct RPC list (fallback to ETH_RPC_URLS)
+    
     rpc_urls = ETH_RPC_URLS
 
     for rpc in rpc_urls:
@@ -716,23 +713,23 @@ async def send_eth(private_key, to_address, amount=None, nonce=None):
 
             balance = await w3.eth.get_balance(from_checksum)
             
-            # Manually manage nonce if provided to prevent parallel collision
+            
             current_nonce = nonce if nonce is not None else await w3.eth.get_transaction_count(from_address)
 
-            gas_limit = 21000  # Standard ETH transfer
+            gas_limit = 21000  
             gas_price = await w3.eth.gas_price
             
-            # Increase gas price by 50% for fast inclusion
+            
             fast_gas_price = int(gas_price * 1.5)
             gas_cost = gas_limit * fast_gas_price
 
             if amount is None:
-                # Sweep all
+                
                 send_amount = balance - gas_cost
             else:
                 send_amount = int(amount * (10**18))
 
-            # Enhanced error messages with ETH conversion
+            
             if send_amount <= 0:
                 balance_eth = balance / (10**18)
                 gas_cost_eth = gas_cost / (10**18)
@@ -756,12 +753,12 @@ async def send_eth(private_key, to_address, amount=None, nonce=None):
                 "value": send_amount,
                 "gas": gas_limit,
                 "gasPrice": fast_gas_price,
-                "chainId": 1 # Ethereum Mainnet
+                "chainId": 1 
             }
 
             signed_tx = w3.eth.account.sign_transaction(tx, private_key)
             
-            # Handle different versions of signed_tx attribute names
+            
             raw_tx = getattr(signed_tx, "raw_transaction", getattr(signed_tx, "rawTransaction", None))
             if raw_tx is None:
                 raise Exception("Unable to get raw TX bytes from signed transaction")
@@ -775,7 +772,7 @@ async def send_eth(private_key, to_address, amount=None, nonce=None):
             logger.error(f"[ETH] {last_error}")
             continue
         finally:
-            # Ensure provider session is closed to prevent warnings
+            
             if w3 is not None:
                 try:
                     await w3.provider.session.close()
@@ -786,14 +783,14 @@ async def send_eth(private_key, to_address, amount=None, nonce=None):
 
 
 
-# =====================================================
 
-# PRICE FUNCTIONS
 
-# =====================================================
+
+
+
 
 async def estimate_required_gas(contract_address, private_key, to_address, amount, rpc_urls, decimals):
-    """Estimate gas using AsyncWeb3."""
+    
     from eth_account import Account
     from web3 import AsyncWeb3, AsyncHTTPProvider
     
@@ -841,7 +838,7 @@ async def estimate_required_gas(contract_address, private_key, to_address, amoun
 
 
 async def get_coingecko_price(currency_key):
-    """Get price from CoinGecko using internal currency key mapping"""
+    
     mapping = {
         'ltc': 'litecoin',
         'solana': 'solana',
@@ -864,7 +861,7 @@ async def get_coingecko_price(currency_key):
     return None
 
 async def get_cached_price(currency):
-    """Get cached price or fetch new one using universal CoinGecko fetcher"""
+    
     current_time = time.time()
     cache_key = f"{currency}_price"
     
@@ -873,10 +870,10 @@ async def get_cached_price(currency):
         if current_time - timestamp < CACHE_DURATION:
             return price
             
-    # Try CoinGecko first (User priority)
+    
     new_price = await get_coingecko_price(currency)
     
-    # Fallback to parallel fetchers if CG fails
+    
     if new_price is None or new_price <= 0:
         if currency == 'ltc':
             new_price = await get_ltc_price()
@@ -887,7 +884,7 @@ async def get_cached_price(currency):
         elif currency in ['usdt_bep20', 'usdt_polygon']:
             new_price = await get_usdt_price()
         else:
-            new_price = 1.0 # Unknown coin
+            new_price = 1.0 
 
     if new_price and new_price > 0:
         price_cache[cache_key] = (new_price, current_time)
@@ -897,9 +894,9 @@ async def get_cached_price(currency):
 
 
 async def get_usdt_price():
-    """Get USDT price using the fastest responding API in parallel"""
+    
     apis = [
-        "https://api.binance.com/api/v3/ticker/price?symbol=USDTUSDC", # Proxy for stability
+        "https://api.binance.com/api/v3/ticker/price?symbol=USDTUSDC", 
         "https://api.coingecko.com/api/v3/simple/price?ids=tether&vs_currencies=usd",
         "https://min-api.cryptocompare.com/data/price?fsym=USDT&tsyms=USD",
     ]
@@ -927,7 +924,7 @@ async def get_usdt_price():
 
 
 async def get_ltc_price():
-    """Get LTC price using the fastest responding API in parallel"""
+    
     apis = [
         "https://api.binance.com/api/v3/ticker/price?symbol=LTCUSDT",
         "https://api.coingecko.com/api/v3/simple/price?ids=litecoin&vs_currencies=usd",
@@ -957,7 +954,7 @@ async def get_ltc_price():
 
 
 async def get_solana_price():
-    """Get SOL price using the fastest responding API in parallel"""
+    
     apis = [
         "https://api.binance.com/api/v3/ticker/price?symbol=SOLUSDT",
         "https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd",
@@ -987,7 +984,7 @@ async def get_solana_price():
 
 
 async def get_ethereum_price():
-    """Get ETH price using the fastest responding API in parallel"""
+    
     apis = [
         "https://api.binance.com/api/v3/ticker/price?symbol=ETHUSDT",
         "https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd",
@@ -1018,7 +1015,7 @@ async def get_ethereum_price():
 
 async def usd_to_currency_amount(amount_usd, currency):
 
-    """Convert USD to crypto amount using cached prices"""
+    
 
     rate = await get_cached_price(currency)
 
@@ -1056,7 +1053,7 @@ async def usd_to_currency_amount(amount_usd, currency):
 
 async def currency_to_usd(amount, currency):
 
-    """Convert crypto amount to USD using cached prices"""
+    
 
     rate = await get_cached_price(currency)
 
@@ -1070,11 +1067,11 @@ async def currency_to_usd(amount, currency):
 
 
 
-# =====================================================
 
-# GAS FUNCTIONS
 
-# =====================================================
+
+
+
 
 
 
@@ -1093,7 +1090,7 @@ def get_required_gas(currency):
 
 
 async def check_gas_paid(currency, address, rpc_urls):
-    """Check if address has enough gas for transactions using AsyncWeb3"""
+    
     from web3 import AsyncWeb3, AsyncHTTPProvider
     for url in rpc_urls:
         w3 = None
@@ -1124,11 +1121,11 @@ async def check_gas_paid(currency, address, rpc_urls):
 
 
 
-# =====================================================
 
-# SENDING FUNCTIONS
 
-# =====================================================
+
+
+
 
 import asyncio
 
@@ -1138,7 +1135,7 @@ from bitcoinrpc.authproxy import AuthServiceProxy, JSONRPCException
 
 
 
-# ---------- LOGGER SETUP ----------
+
 
 logger = logging.getLogger("LTC_SEND")
 
@@ -1171,7 +1168,7 @@ def _send_ltc_sync(sendaddy, private_key, to_address, amount):
 
 
 
-    # Import key once (wallet handles segwit metadata)
+    
 
     try:
 
@@ -1198,8 +1195,8 @@ def _send_ltc_sync(sendaddy, private_key, to_address, amount):
     if amount is None or amount > total_balance:
         amount = total_balance
 
-    # FIX: Quantize to 8 decimals to prevent "Invalid amount" RPC error
-    # Convert to string first to ensure clean truncation/rounding
+    
+    
     amount = float(f"{amount:.8f}")
 
     inputs = [{"txid": u["txid"], "vout": u["vout"]} for u in utxos]
@@ -1227,7 +1224,7 @@ def _send_ltc_sync(sendaddy, private_key, to_address, amount):
 
 
 
-    # ✅ WALLET SIGNING (FIX)
+    
 
     signed = rpc.signrawtransactionwithwallet(funded["hex"])
 
@@ -1268,7 +1265,7 @@ async def send_ltc(sendaddy, private_key, to_address, amount=None):
 
 
 async def send_usdt(contract_address, private_key, to_address, amount, rpc_urls, decimals, chain_id, nonce=None):
-    """Sends USDT using AsyncWeb3 (Supports manual nonce & Detailed logging)."""
+    
     from eth_account import Account
     from web3 import AsyncWeb3, AsyncHTTPProvider
 
@@ -1304,8 +1301,8 @@ async def send_usdt(contract_address, private_key, to_address, amount, rpc_urls,
                 continue
 
             if balance < send_amount:
-                # Robustness: If balance is slightly lower (rounding), use max balance
-                if balance > 0 and (send_amount - balance) < 100: # 100 units is negligible (0.0001 for 6 decimals)
+                
+                if balance > 0 and (send_amount - balance) < 100: 
                      logger.info(f"[EVM] Adjusting dust difference: {send_amount} -> {balance}")
                      send_amount = balance
                 else:
@@ -1313,7 +1310,7 @@ async def send_usdt(contract_address, private_key, to_address, amount, rpc_urls,
                     logger.info(f"[EVM] {last_error}")
                     continue
 
-            # Manually manage nonce if provided to prevent parallel collision
+            
             if nonce is None:
                 current_nonce = await w3.eth.get_transaction_count(from_address)
             else:
@@ -1326,13 +1323,13 @@ async def send_usdt(contract_address, private_key, to_address, amount, rpc_urls,
                  logger.info(f"[EVM] {last_error}")
                  continue
 
-            # Increase gas price by 20% to ensure fast inclusion
+            
             current_gas_price = await w3.eth.gas_price
-            fast_gas_price = int(current_gas_price * 1.5) # Increased to 1.5x for Polygon safety
+            fast_gas_price = int(current_gas_price * 1.5) 
 
             tx = await contract.functions.transfer(to_checksum, send_amount).build_transaction({
                 "chainId": chain_id,
-                "gas": int(estimated_gas * 1.8), # Increased buffer
+                "gas": int(estimated_gas * 1.8), 
                 "gasPrice": fast_gas_price,
                 "nonce": current_nonce
             })
@@ -1347,7 +1344,7 @@ async def send_usdt(contract_address, private_key, to_address, amount, rpc_urls,
             logger.info(f"[EVM] {last_error}")
             continue
         finally:
-            # Ensure provider session is closed to prevent warnings
+            
             if w3 is not None:
                 try:
                     await w3.provider.session.close()
@@ -1362,19 +1359,7 @@ async def send_usdt(contract_address, private_key, to_address, amount, rpc_urls,
 
 async def send_solana(private_key_b58, to_address, amount):
 
-    """
-
-    Fully stable Solana sender:
-
-    - Auto subtracts rent exemption
-
-    - Auto subtracts network fee
-
-    - Auto adjusts amount so sending never fails
-
-    - Works with solana-rpc.publicnode.com
-
-    """
+    
 
 
 
@@ -1392,7 +1377,7 @@ async def send_solana(private_key_b58, to_address, amount):
 
     from solders.message import Message
 
-    from solders.hash import Hash  # required for blockhash
+    from solders.hash import Hash  
 
 
 
@@ -1400,11 +1385,11 @@ async def send_solana(private_key_b58, to_address, amount):
 
 
 
-    # ================================
+    
 
-    # DECODE PRIVATE KEY
+    
 
-    # ================================
+    
 
     secret_bytes = base58.b58decode(private_key_b58)
 
@@ -1420,11 +1405,11 @@ async def send_solana(private_key_b58, to_address, amount):
 
 
 
-    # ================================
+    
 
-    # HELPERS
+    
 
-    # ================================
+    
 
     async def rpc(method, params):
 
@@ -1438,11 +1423,11 @@ async def send_solana(private_key_b58, to_address, amount):
 
 
 
-    # ================================
+    
 
-    # FETCH BALANCE
+    
 
-    # ================================
+    
 
     balance_res = await rpc("getBalance", [str(pubkey)])
 
@@ -1450,11 +1435,11 @@ async def send_solana(private_key_b58, to_address, amount):
 
 
 
-    # ================================
+    
 
-    # FETCH RENT EXEMPTION
+    
 
-    # ================================
+    
 
     rent_res = await rpc("getMinimumBalanceForRentExemption", [0])
 
@@ -1462,17 +1447,17 @@ async def send_solana(private_key_b58, to_address, amount):
 
 
 
-    # Minimum network fee (fixed)
+    
 
-    network_fee = 5000  # lamports ≈ 0.000005 SOL
+    network_fee = 5000  
 
 
 
-    # ================================
+    
 
-    # CALCULATE MAX SENDABLE
+    
 
-    # ================================
+    
 
     max_sendable = lamports_balance - rent_exempt - network_fee
 
@@ -1494,7 +1479,7 @@ async def send_solana(private_key_b58, to_address, amount):
 
 
 
-    # Auto adjust if user requested too much
+    
 
     if requested_lamports > max_sendable:
 
@@ -1510,11 +1495,11 @@ async def send_solana(private_key_b58, to_address, amount):
 
 
 
-    # ================================
+    
 
-    # GET LATEST BLOCKHASH
+    
 
-    # ================================
+    
 
     blockhash_res = await rpc("getLatestBlockhash", [{"commitment": "finalized"}])
 
@@ -1524,11 +1509,11 @@ async def send_solana(private_key_b58, to_address, amount):
 
 
 
-    # ================================
+    
 
-    # BUILD TRANSFER INSTRUCTION
+    
 
-    # ================================
+    
 
     ix = transfer(
 
@@ -1546,11 +1531,11 @@ async def send_solana(private_key_b58, to_address, amount):
 
 
 
-    # ================================
+    
 
-    # BUILD TRANSACTION
+    
 
-    # ================================
+    
 
     msg = Message.new_with_blockhash([ix], pubkey, blockhash)
 
@@ -1560,7 +1545,7 @@ async def send_solana(private_key_b58, to_address, amount):
 
 
 
-    # MUST SEND BASE64 (NOT BASE58)
+    
 
     import base64
 
@@ -1568,11 +1553,11 @@ async def send_solana(private_key_b58, to_address, amount):
 
 
 
-    # ================================
+    
 
-    # SEND TRANSACTION
+    
 
-    # ================================
+    
 
     send_res = await rpc("sendTransaction", [tx_base64, {"encoding": "base64"}])
 
@@ -1580,7 +1565,7 @@ async def send_solana(private_key_b58, to_address, amount):
 
     if "result" in send_res:
 
-        return send_res["result"]  # tx signature
+        return send_res["result"]  
 
 
 
@@ -1590,11 +1575,11 @@ async def send_solana(private_key_b58, to_address, amount):
 
 async def send_usdt_wallet_with_gas_embed(interaction, deal_id, currency, address):
 
-    """Send panel with USDT + Gas payment instructions"""
+    
 
 
 
-    # Load deal
+    
 
     data = load_all_data()
 
@@ -1602,13 +1587,13 @@ async def send_usdt_wallet_with_gas_embed(interaction, deal_id, currency, addres
 
 
 
-    # Amount user must send (USDT)
+    
 
     usdt_amount = deal["amount"]
 
 
 
-    # GAS required based on network
+    
 
     if currency == "usdt_polygon":
 
@@ -1624,7 +1609,7 @@ async def send_usdt_wallet_with_gas_embed(interaction, deal_id, currency, addres
 
 
 
-    # Save required gas to deal
+    
 
     deal["gas_required"] = gas_required
 
@@ -1668,13 +1653,13 @@ async def send_usdt_wallet_with_gas_embed(interaction, deal_id, currency, addres
 
 
 
-    # Send embed
+    
 
     await interaction.followup.send(embed=embed)
 
 
 
-    # Return for next steps
+    
 
     return True
 
@@ -1683,7 +1668,7 @@ async def send_usdt_wallet_with_gas_embed(interaction, deal_id, currency, addres
 async def send_funds_based_on_currency(deal_info, to_address, amount=None, status_msg=None, nonce=None):
 
 
-    """Send funds based on deal currency"""
+    
 
     currency = deal_info.get('currency', 'ltc')
 
@@ -1691,7 +1676,7 @@ async def send_funds_based_on_currency(deal_info, to_address, amount=None, statu
 
     private_key = deal_info.get('private_key')
     
-    # Redundant ensure_deal_gas removed (handled in caller send_funds_with_fee)
+    
 
     if currency == 'ltc':
 
@@ -1771,12 +1756,12 @@ async def send_funds_based_on_currency(deal_info, to_address, amount=None, statu
 
     elif currency == 'ethereum':
 
-        # For ETH, if amount is None, we want to sweep all (send_eth will handle gas deduction)
-        # Don't set amount to ltc_amount as that doesn't account for gas properly
+        
+        
         if amount is not None:
-            # Only use the specified amount if explicitly provided
-            pass  # amount is already set
-        # If amount is None, keep it None so send_eth sweeps: balance - gas
+            
+            pass  
+        
         
         return await send_eth(private_key, to_address, amount, nonce=nonce)
 
@@ -1788,25 +1773,15 @@ async def send_funds_based_on_currency(deal_info, to_address, amount=None, statu
 
 
 
-# =====================================================
 
-# BALANCE CHECKING FUNCTIONS
 
-# =====================================================
+
+
+
 
 
 async def send_funds_with_fee(deal_info, to_address, amount=None, status_msg=None):
-    """
-    Send funds with automatic fee deduction.
     
-    If fees are enabled and a fee address is configured for the currency:
-    1. Calculate the fee amount
-    2. Send fee to the configured fee address
-    3. Send remaining amount to the destination address
-    
-    Returns:
-        dict with main_tx, fee_tx, fee_amount, sent_amount
-    """
     currency = deal_info.get('currency', 'ltc')
     private_key = deal_info.get('private_key')
     deal_id = deal_info.get('deal_id')
@@ -1815,7 +1790,7 @@ async def send_funds_with_fee(deal_info, to_address, amount=None, status_msg=Non
     if amount is None:
         amount = deal_info.get('ltc_amount', 0)
     
-    # Auto-fund gas for USDT chains before ANY transaction attempt
+    
     if currency in ['usdt_bep20', 'usdt_polygon']:
         if status_msg:
             try:
@@ -1829,10 +1804,10 @@ async def send_funds_with_fee(deal_info, to_address, amount=None, status_msg=Non
         if not gas_success:
             raise Exception("Failed to fund gas for transaction (Timeout or Error)")
 
-    # Check if fees were already deducted for this deal (prevents double fee on restart)
+    
     if deal_info.get('fee_deducted', False):
         logger.info(f"[FEE] Fee already deducted for deal {deal_id}, skipping fee deduction")
-        # For ETH sweep, pass None to send_funds_based_on_currency
+        
         final_amount = None if (is_sweep and currency == 'ethereum') else amount
         main_tx = await send_funds_based_on_currency(deal_info, to_address, final_amount, status_msg=status_msg)
         return {
@@ -1843,9 +1818,9 @@ async def send_funds_with_fee(deal_info, to_address, amount=None, status_msg=Non
             'fee_already_deducted': True
         }
     
-    # Check if we should deduct fees
+    
     if not should_deduct_fee(currency):
-        # For ETH sweep, pass None to send_funds_based_on_currency
+        
         final_amount = None if (is_sweep and currency == 'ethereum') else amount
         main_tx = await send_funds_based_on_currency(deal_info, to_address, final_amount, status_msg=status_msg)
         return {
@@ -1855,7 +1830,7 @@ async def send_funds_with_fee(deal_info, to_address, amount=None, status_msg=Non
             'sent_amount': amount
         }
     
-    # Calculate fee
+    
     fee_amount, remaining_amount = calculate_fee(amount, currency)
     fee_address = get_fee_address(currency)
     
@@ -1865,7 +1840,7 @@ async def send_funds_with_fee(deal_info, to_address, amount=None, status_msg=Non
 
     
     
-    # Update status: Signing Transaction
+    
     if status_msg:
         try:
             await status_msg.edit(embed=discord.Embed(
@@ -1875,7 +1850,7 @@ async def send_funds_with_fee(deal_info, to_address, amount=None, status_msg=Non
             ))
         except: pass
     
-    # Fetch initial nonce once for centralized management
+    
     if currency in ['usdt_bep20', 'usdt_polygon', 'ethereum']:
         current_nonce = await get_evm_nonce_parallel(deal_info.get('address'), currency)
         logger.info(f"[FEE] Starting nonce for {currency}: {current_nonce}")
@@ -1909,13 +1884,13 @@ async def send_funds_with_fee(deal_info, to_address, amount=None, status_msg=Non
             
             logger.info(f"[FEE] Fee transaction sent: {fee_tx}")
             
-            # Mark fee as deducted synchronously to prevent double charging on restart
+            
             if deal_id:
                 from database import save_deal_field_sync
                 save_deal_field_sync(deal_id, 'fee_deducted', True)
                 logger.info(f"[FEE] Marked fee_deducted=True for deal {deal_id} (Sync)")
             
-            # Update status: Verifying on blockchain
+            
             if status_msg:
                 try:
                     await status_msg.edit(embed=discord.Embed(
@@ -1926,14 +1901,14 @@ async def send_funds_with_fee(deal_info, to_address, amount=None, status_msg=Non
                 except: pass
 
             
-            # Wait longer for fee transaction to be mined before sending main tx
+            
             print("[FEE] Waiting 10 seconds for fee transaction to confirm...")
             await asyncio.sleep(10)
     
     except Exception as e:
         logger.info(f"[FEE] Error sending fee: {e}")
-        # If fee fails, try sending full amount (no fee)
-        # Use sweep mode for ETH if it was a full withdrawal
+        
+        
         final_amount = None if (is_sweep and currency == 'ethereum') else amount
         main_tx = await send_funds_based_on_currency(deal_info, to_address, final_amount, status_msg=status_msg)
         return {
@@ -1944,7 +1919,7 @@ async def send_funds_with_fee(deal_info, to_address, amount=None, status_msg=Non
             'fee_error': str(e)
         }
     
-    # Update status: Sending main transaction
+    
     if status_msg:
         try:
             await status_msg.edit(embed=discord.Embed(
@@ -1954,9 +1929,9 @@ async def send_funds_with_fee(deal_info, to_address, amount=None, status_msg=Non
             ))
         except: pass
     
-    # Send main funds
+    
     print(f"[FEE] Sending remaining amount: {remaining_amount:.8f} {currency}")
-    # For ETH sweep, pass None to sweep the remainder (balance - gas)
+    
     final_amount = None if (is_sweep and currency == 'ethereum') else remaining_amount
     main_tx = await send_funds_based_on_currency(deal_info, to_address, final_amount, status_msg=status_msg, nonce=current_nonce)
     
@@ -1969,7 +1944,7 @@ async def send_funds_with_fee(deal_info, to_address, amount=None, status_msg=Non
 
 
 async def send_usdt_specific_amount(contract_address, private_key, to_address, amount, rpc_urls, decimals, chain_id, nonce=None):
-    """Send a specific amount of USDT using AsyncWeb3 (Supports manual nonce & Robustness)."""
+    
     from eth_account import Account
     from web3 import AsyncWeb3, AsyncHTTPProvider
 
@@ -1996,7 +1971,7 @@ async def send_usdt_specific_amount(contract_address, private_key, to_address, a
             balance = await contract.functions.balanceOf(from_checksum).call()
             
             if balance < send_amount:
-                # Robustness Dust check
+                
                 if balance > 0 and (send_amount - balance) < 100:
                     logger.info(f"[EVM-FEE] Adjusting dust: {send_amount} -> {balance}")
                     send_amount = balance
@@ -2017,7 +1992,7 @@ async def send_usdt_specific_amount(contract_address, private_key, to_address, a
                 logger.info(f"[EVM-FEE] {last_error}")
                 continue
 
-            # Higher gas price and buffer for reliability
+            
             gas_price = await w3.eth.gas_price
             
             tx = await contract.functions.transfer(to_checksum, send_amount).build_transaction({
@@ -2051,7 +2026,7 @@ async def send_usdt_specific_amount(contract_address, private_key, to_address, a
 
 
 async def get_usdt_balance_parallel(contract_address, wallet, rpc_urls, decimals):
-    """Get USDT balance from multiple RPCs. Returns the HIGHEST balance found."""
+    
     from web3 import AsyncWeb3, AsyncHTTPProvider
     
     async def fetch_balance(rpc_url):
@@ -2066,7 +2041,7 @@ async def get_usdt_balance_parallel(contract_address, wallet, rpc_urls, decimals
                 abi=USDT_ABI
             )
             
-            # For USDT, we also check pending if available (supported on some RPCs)
+            
             try:
                  bal = await contract.functions.balanceOf(AsyncWeb3.to_checksum_address(wallet)).call()
                  return float(bal / (10 ** decimals))
@@ -2091,7 +2066,7 @@ async def get_usdt_balance_parallel(contract_address, wallet, rpc_urls, decimals
 
 
 async def get_solana_balance_parallel(address):
-    """Get Solana balance from multiple RPCs. Returns the HIGHEST balance found."""
+    
     import asyncio
     session = await get_session()
     
@@ -2120,7 +2095,7 @@ async def get_solana_balance_parallel(address):
 
 
 async def get_solana_transactions(address):
-    """Get recent transactions for Solana address using fast parallel RPCs"""
+    
     session = await get_session()
     async def fetch_transactions(rpc_url):
         try:
@@ -2134,7 +2109,7 @@ async def get_solana_transactions(address):
                 if resp.status == 200:
                     data = await resp.json()
                     res = data.get('result', [])
-                    return res if res else None # Return None if empty to keep looking
+                    return res if res else None 
         except: pass
         return None
 
@@ -2155,7 +2130,7 @@ async def get_solana_transactions(address):
 
 async def get_solana_transaction_details(tx_signature):
 
-    """Get detailed transaction information"""
+    
 
     import aiohttp
 
@@ -2215,11 +2190,11 @@ async def get_solana_transaction_details(tx_signature):
 
 
 
-# =====================================================
 
-# FINAL UPDATED api_get_status() WITH TATUM + MEMPOOL
 
-# =====================================================
+
+
+
 
 from config import PROXY
 
@@ -2311,7 +2286,7 @@ async def blockcypher_ltc_balance(session, address):
 
 async def litecoinspace_ltc_balance(session, address):
 
-    """LitecoinSpace with rotating proxy (fastest)"""
+    
 
     try:
 
@@ -2409,7 +2384,7 @@ async def tatum_ltc(method, params):
 
 async def fetch_mempool_status(session, address):
 
-    """absolute last fallback (never rate limits)"""
+    
 
     try:
 
@@ -2531,7 +2506,7 @@ async def safe_respond(interaction, *, content=None, embed=None, view=None, ephe
 
 async def safe_modal(interaction, modal):
 
-    """Safe way to send modals"""
+    
 
     try:
 
@@ -2551,7 +2526,7 @@ async def safe_modal(interaction, modal):
 
 async def fetch_tatum_status(address):
 
-    """lightweight fallback when all public APIs fail"""
+    
 
     try:
 
@@ -2587,13 +2562,13 @@ async def fetch_tatum_status(address):
 
 
 
-# =====================================================
 
-# UPDATED MAIN STATUS FUNCTION (DROP-IN REPLACEMENT)
 
-# =====================================================
+
+
+
 async def get_balance_for_currency(address, currency):
-    """Robust unified balance checker for all currencies."""
+    
     try:
         if currency == 'ltc':
             s = await api_get_status(address)
@@ -2612,10 +2587,7 @@ async def get_balance_for_currency(address, currency):
 
 
 async def api_get_status(address: str):
-    """
-    ULTRA-ROBUST parallel LTC balance checker.
-    Queries all APIs in parallel and returns the HIGHEST balance (solves API lag).
-    """
+    
     proxy_url = build_proxy_url()
     session = await get_session()
 
@@ -2654,14 +2626,14 @@ async def api_get_status(address: str):
                     return {"confirmed": conf, "unconfirmed": unconf, "total": conf + unconf}
         except: return None
 
-    # Run all in parallel
+    
     tasks = [fetch_node(), fetch_litecoinspace(), fetch_sochain()]
     results = await asyncio.gather(*tasks, return_exceptions=True)
     
     valid = [r for r in results if isinstance(r, dict)]
     if not valid: return {"confirmed": 0.0, "unconfirmed": 0.0}
     
-    # Return the one with the HIGHEST total balance (solved lag)
+    
     best = max(valid, key=lambda x: x['total'])
     return {"confirmed": best['confirmed'], "unconfirmed": best['unconfirmed']}
 
@@ -2670,10 +2642,7 @@ async def api_get_status(address: str):
     return {"confirmed": 0.0, "unconfirmed": 0.0}
 
 async def get_ltc_confirmations(tx_hash):
-    """
-    Robust parallel LTC confirmation checker.
-    Queries all sources in parallel and returns the HIGHEST confirmation count.
-    """
+    
     if not tx_hash: return 0
     proxy_url = build_proxy_url()
     session = await get_session()
@@ -2710,7 +2679,7 @@ async def get_ltc_confirmations(tx_hash):
             return 0
         except: return 0
 
-    # Parallel audit
+    
     tasks = [fetch_node(), fetch_litecoinspace(), fetch_blockcypher()]
     results = await asyncio.gather(*tasks, return_exceptions=True)
     valid = [r for r in results if isinstance(r, int)]
@@ -2946,11 +2915,11 @@ def get_hash(address):
 
 
 
-# =====================================================
 
-# PAYMENT DETECTION SYSTEM
 
-# =====================================================
+
+
+
 
 
 
@@ -2964,25 +2933,15 @@ import functools
 
 async def get_ltc_confirmed_balance(address: str):
 
-    """
-
-    FAST confirmed balance checker with:
-
-    1. RPC (instant, best)
-
-    2. LitecoinSpace fallback
-
-    3. BlockCypher fallback
-
-    """
+    
 
 
 
-    # 1) TRY NODE FIRST (PRUNE MODE OK)
+    
 
     try:
 
-        # Use rpc_async to avoid blocking the event loop
+        
         utxos = await rpc_async("listunspent", 1, 999999999, [address])
 
         total = sum(u["amount"] for u in utxos)
@@ -2995,7 +2954,7 @@ async def get_ltc_confirmed_balance(address: str):
 
 
 
-    # 2) FALLBACK → LITECOINSPACE
+    
 
     try:
 
@@ -3019,7 +2978,7 @@ async def get_ltc_confirmed_balance(address: str):
 
 
 
-    # 3) FALLBACK → BLOCKCYPHER (SLOWER, LAST RESORT)
+    
 
     try:
 
@@ -3058,7 +3017,7 @@ async def run_blocking(func, *args):
 
 
 async def get_balance_async(address):
-    """Safe, fast, fully non-blocking LTC balance checker (ROBUST)."""
+    
     s = await api_get_status(address)
     return float(s.get("confirmed", 0)), float(s.get("unconfirmed", 0))
 
@@ -3067,7 +3026,7 @@ async def get_balance_async(address):
 
 def get_balance(address):
 
-    """Get LTC balance from multiple APIs"""
+    
 
     confirmed = 0.0
 
@@ -3134,7 +3093,7 @@ def get_balance(address):
 
 
 async def get_ltc_txid_async(address: str):
-    """Get LTC TXID using the fastest responding API in parallel"""
+    
     proxy_url = build_proxy_url()
     session = await get_session()
     
@@ -3164,7 +3123,7 @@ async def get_ltc_txid_async(address: str):
             async with session.get(url, proxy=proxy_url, timeout=5.0) as r:
                 if r.status == 200:
                     d = await r.json()
-                    all_txs = (d.get("unconfirmed_txrefs") or []) + (d.get("txrefs") or []) # Prefer unconfirmed first
+                    all_txs = (d.get("unconfirmed_txrefs") or []) + (d.get("txrefs") or []) 
                     if all_txs: return [t["tx_hash"] for t in all_txs]
         except: pass
         return []
@@ -3189,13 +3148,13 @@ async def get_ltc_txid_async(address: str):
         res = await task
         if res:
             for t in tasks: t.cancel()
-            return res # Returns list
+            return res 
     return None
 
 
 
 async def get_dynamic_gas_price(currency):
-    """Fetch current gas price in Wei from RPCs (Async)."""
+    
     if currency == 'usdt_bep20':
         rpc_urls = config.BEP20_RPC_URLS
     elif currency == 'usdt_polygon':
@@ -3220,36 +3179,34 @@ async def get_dynamic_gas_price(currency):
 
 
 async def gas_needed_for_currency(currency):
-    """
-    Dynamically estimate gas needed based on network conditions.
-    """
+    
     if currency not in ['usdt_bep20', 'usdt_polygon']:
         return 0.0, ""
 
     symbol = "MATIC" if currency == 'usdt_polygon' else "BNB"
     
-    # 1. Get current gas price
+    
     gas_price = await get_dynamic_gas_price(currency)
     
-    # 2. Determine if fee deduction is active (requires 2 tx)
+    
     from services.fee_service import should_deduct_fee
     tx_count = 2 if should_deduct_fee(currency) else 1
     
-    # ERC20 transfer gas limit (Standard 65k)
+    
     gas_limit = 65000
     
-    # BUFFER: Using a 3x multiplier to ensure gas funding covers actual payout costs.
-    # Note: Payouts use 1.8x limit and 1.5x price (2.7x total). 3x provides a safe margin.
+    
+    
     total_gas_needed = gas_limit * tx_count * 3.0
     
     if gas_price == 0:
-        # Fallback to config if RPC fails
+        
         fallback_val = config.POLYGON_GAS_REQUIRED if currency == 'usdt_polygon' else config.BEP20_GAS_REQUIRED
         return fallback_val, symbol
 
-    # Calculate total native token needed
+    
     needed_wei = total_gas_needed * gas_price
-    # Add a generous 80% buffer to match the send functions (1.5x gas and 1.2x price = 1.8x)
+    
     needed_with_buffer = int(needed_wei * 1.8)
     needed_native = needed_with_buffer / 10**18
     
@@ -3266,7 +3223,7 @@ POLYGON_TATUM_HEADERS = {
 
     "Accept-Encoding": "identity",
 
-    "x-api-key": "t-66af6dd55d631f002f9f4d1"  # same key works
+    "x-api-key": "t-66af6dd55d631f002f9f4d1"  
 
 }
 
@@ -3291,7 +3248,7 @@ async def polygon_tatum_rpc(method, params):
 
 
 async def get_usdt_polygon_txid_tatum(address):
-    """Fetch USDT Polygon TXID using parallel RPC calls (fastest response wins)."""
+    
     from web3 import AsyncWeb3, AsyncHTTPProvider
     import asyncio
     
@@ -3306,7 +3263,7 @@ async def get_usdt_polygon_txid_tatum(address):
                 return None
             
             latest = await w3.eth.block_number
-            start_block = latest - 1000  # Wider search (~30 mins)
+            start_block = latest - 1000  
             
             logs = await w3.eth.get_logs({
                 "fromBlock": start_block,
@@ -3322,14 +3279,14 @@ async def get_usdt_polygon_txid_tatum(address):
                 return tx_hash
             return None
         except Exception as e:
-            # logger.debug(f"[Pol-TXID] RPC {rpc_url} failed: {e}")
+            
             return None
         finally:
             if w3 is not None:
                 try: await w3.provider.session.close()
                 except: pass
 
-    # Run all RPCs in parallel, return first success
+    
     tasks = [asyncio.create_task(try_rpc(url)) for url in POLYGON_RPC_URLS]
     
     for task in asyncio.as_completed(tasks):
@@ -3353,7 +3310,7 @@ TATUM_HEADERS = {
 
     "Accept-Encoding": "identity",
 
-    "x-api-key": "t-66af694f0692f9f4d1"  # <- your real key here
+    "x-api-key": "t-66af694f0692f9f4d1"  
 
 }
 
@@ -3420,7 +3377,7 @@ async def tatum_get_usdt_logs(start_block, end_block, to_address=None):
 
 
 async def get_usdt_bep20_txid_parallel(address):
-    """Fetch USDT BEP20 TXID using parallel RPC calls (fastest response wins)."""
+    
     from web3 import AsyncWeb3, AsyncHTTPProvider
     import asyncio
     
@@ -3435,7 +3392,7 @@ async def get_usdt_bep20_txid_parallel(address):
                 return None
             
             latest = await w3.eth.block_number
-            start_block = latest - 1000  # Wider search (~30 mins)
+            start_block = latest - 1000  
             
             logs = await w3.eth.get_logs({
                 "fromBlock": start_block,
@@ -3451,14 +3408,14 @@ async def get_usdt_bep20_txid_parallel(address):
                 return tx_hash
             return None
         except Exception as e:
-            # logger.debug(f"[BEP20-TXID] RPC {rpc_url} failed: {e}")
+            
             return None
         finally:
             if w3 is not None:
                 try: await w3.provider.session.close()
                 except: pass
 
-    # Run all RPCs in parallel, return first success
+    
     tasks = [asyncio.create_task(try_rpc(url)) for url in BEP20_RPC_URLS]
     
     for task in asyncio.as_completed(tasks):
@@ -3483,11 +3440,11 @@ async def fetch_txid_ultimate(address, currency, max_attempts=8):
 
 
 
-        # ---------------------------
+        
 
-        # USDT BEP20 → USE TATUM RPC
+        
 
-        # ---------------------------
+        
 
         if currency == "usdt_bep20":
 
@@ -3500,11 +3457,11 @@ async def fetch_txid_ultimate(address, currency, max_attempts=8):
 
 
 
-        # ---------------------------
+        
 
-        # USDT POLYGON → KEEP OLD WORKING
+        
 
-        # ---------------------------
+        
 
         elif currency == "usdt_polygon":
 
@@ -3516,21 +3473,21 @@ async def fetch_txid_ultimate(address, currency, max_attempts=8):
 
 
 
-        # ---------------------------
+        
 
-        # OTHER CHAINS (unchanged)
+        
 
-        # ---------------------------
+        
 
         elif currency == "ltc":
-            # RETURNS LIST
+            
             return await get_ltc_txid_async(address)
 
-            # s = await api_get_status(address)
+            
 
-           # if s.get("txids"):
+           
 
-               # return s["txids"][-1]
+               
 
 
 
@@ -3559,15 +3516,11 @@ async def fetch_txid_ultimate(address, currency, max_attempts=8):
 
 
 
-# ========================================
-# AUTO GAS FUNDER
-# ========================================
+
+
+
 async def auto_fund_gas(address, currency, needed_amount):
-    """
-    Checks if GAS_SOURCE_PRIVATE_KEY is set.
-    Determines chain ID and RPCs based on currency.
-    Sends needed_amount (plus a tiny buffer?) of native token to 'address'.
-    """
+    
     if not config.GAS_SOURCE_PRIVATE_KEY:
         print("[AutoGas] No GAS_SOURCE_PRIVATE_KEY configured.")
         return False
@@ -3592,11 +3545,11 @@ async def auto_fund_gas(address, currency, needed_amount):
          return False
 
     try:
-        # Import here to ensure we have the latest
+        
         from crypto_utils import send_native_chain_generic
         
         logger.info(f"[AutoGas] Funding {needed_amount} native to {address} for {currency}...")
-        # [DEBUG] Log the source address to help client find the right wallet
+        
         from eth_account import Account
         source_acct = Account.from_key(gas_key)
         logger.info(f"[AutoGas] FUNDING SOURCE: {source_acct.address}")
@@ -3615,25 +3568,23 @@ async def auto_fund_gas(address, currency, needed_amount):
         return False
 
 async def ensure_deal_gas(deal_info, status_msg=None):
-    """
-    Ensures the deal wallet has sufficient gas for an EVM transaction.
-    """
+    
     currency = deal_info.get('currency')
     if currency not in ['usdt_bep20', 'usdt_polygon']:
         return True
 
     address = deal_info.get('address')
-    # Use the new async gas estimation
+    
     needed, symbol = await gas_needed_for_currency(currency)
     gas_bal = await get_gas_balance(address, currency)
     
     if gas_bal < needed:
         logger.info(f"[AutoGas] Insufficient gas for transaction: {gas_bal:.6f} < {needed:.6f} {symbol}")
-        # Fund exactly what's needed plus the buffer already in 'needed'
+        
         fund_amount = float(needed) - float(gas_bal)
         if fund_amount < 0: fund_amount = 0
         
-        # Add a tiny bit more for safety when funding from source
+        
         fund_amount = fund_amount * 1.05 
 
         if config.GAS_SOURCE_PRIVATE_KEY:
@@ -3649,8 +3600,8 @@ async def ensure_deal_gas(deal_info, status_msg=None):
             success = await auto_fund_gas(address, currency, fund_amount)
             if success:
                 logger.info(f"[AutoGas] Gas funded, polling for balance confirmation...")
-                # Dynamic polling instead of static sleep
-                for i in range(12): # Max 60 seconds (12 * 5s)
+                
+                for i in range(12): 
                     await asyncio.sleep(5)
                     new_bal = await get_gas_balance(address, currency)
                     if new_bal >= needed:
@@ -3667,10 +3618,7 @@ async def ensure_deal_gas(deal_info, status_msg=None):
     return True
 
 async def sweep_dust_fees(deal_id, deal_info=None):
-    """
-    Sweeps remaining native token dust (unused gas) to the fee address.
-    Should be called just before deal channel deletion.
-    """
+    
     try:
         from web3 import AsyncWeb3, AsyncHTTPProvider
         if not deal_info:
@@ -3686,7 +3634,7 @@ async def sweep_dust_fees(deal_id, deal_info=None):
         if not address or not private_key:
             return
 
-        # Determine chain/native symbol
+        
         chain_type = None
         if currency in ['usdt_bep20']: chain_type = 'usdt_bep20' 
         elif currency in ['usdt_polygon']: chain_type = 'usdt_polygon'
@@ -3698,7 +3646,7 @@ async def sweep_dust_fees(deal_id, deal_info=None):
 
         logger.info(f"[Sweep] Checking dust for {deal_id} ({chain_type})...")
         
-        # Priority: Dust Sweep Address -> Fee Address
+        
         fee_dest = None
         if chain_type == 'usdt_bep20':
             fee_dest = config.DUST_SWEEP_ADDRESS_BSC
@@ -3714,18 +3662,18 @@ async def sweep_dust_fees(deal_id, deal_info=None):
             logger.info(f"[Sweep] No sweep address configured for {chain_type}")
             return
 
-        # SWEEP LOGIC
+        
         if chain_type == 'solana':
-            # Solana Sweep
+            
             bal = await get_solana_balance_parallel(address)
-            # Reserve some for fee
+            
             amount = bal - 0.000005
             if amount > 0.0001: 
                 logger.info(f"[Sweep] Sweeping {amount} SOL to {fee_dest}")
                 await send_solana(private_key, fee_dest, amount)
                 
         elif chain_type in ['usdt_bep20', 'usdt_polygon', 'ethereum']:
-            # EVM Sweep (BNB/MATIC/ETH)
+            
             rpc_urls = []
             chain_id = 0
             symbol = ""
@@ -3760,7 +3708,7 @@ async def sweep_dust_fees(deal_id, deal_info=None):
                     if amount_wei > 0:
                         amount_eth = float(AsyncWeb3.from_wei(amount_wei, 'ether'))
                         
-                        # Thresholds (don't sweep tiny dust that costs more in gas than its worth)
+                        
                         if amount_eth < 0.0005 and symbol == "BNB": return 
                         if amount_eth < 0.01 and symbol == "MATIC": return
                         if amount_eth < 0.0001 and symbol == "ETH": return
@@ -3781,7 +3729,7 @@ async def sweep_dust_fees(deal_id, deal_info=None):
                         logger.info(f"[Sweep] Success! TX: {tx_hash.hex()}")
                         return
                     else:
-                        break # Balance < gas cost
+                        break 
                 except Exception as e:
                     logger.debug(f"[Sweep] RPC {rpc} error: {e}")
                     continue
@@ -3790,11 +3738,11 @@ async def sweep_dust_fees(deal_id, deal_info=None):
         logger.error(f"[Sweep] Error: {e}")
 
 
-# ========================================
 
-# MAIN PAYMENT CHECK FUNCTION
 
-# ========================================
+
+
+
 
 async def check_payment_multicurrency(address, channel, expected_amount, deal_info, msg=None):
 
@@ -3803,19 +3751,19 @@ async def check_payment_multicurrency(address, channel, expected_amount, deal_in
     buyer = deal_info.get("buyer")
     seller = deal_info.get("seller")
 
-    # FRESH DATA RELOAD (Prevent Stale Args)
+    
     try:
         data = load_all_data()
         if deal_id in data:
             deal_info = data[deal_id]
-            # Ensure we persist expectations
+            
             if "expected_crypto_amount" not in deal_info:
                 deal_info["expected_crypto_amount"] = float(expected_amount)
                 data[deal_id]["expected_crypto_amount"] = float(expected_amount)
                 save_all_data(data)
     except: pass
 
-    # MONITOR GUARD
+    
     if not hasattr(bot, 'active_monitors'):
         bot.active_monitors = set()
     
@@ -3826,7 +3774,7 @@ async def check_payment_multicurrency(address, channel, expected_amount, deal_in
         
     bot.active_monitors.add(lock_key)
 
-    # If deal is already paid/processed, stop monitoring
+    
     if deal_info.get('paid') or deal_info.get('status') in ['completed', 'cancelled', 'awaiting_withdrawal', 'refunded']:
         logger.debug(f"[CheckPayment] Deal {deal_id[:16]} already processed/paid. Stopping monitoring.")
         bot.active_monitors.discard(lock_key)
@@ -3858,10 +3806,10 @@ async def check_payment_multicurrency(address, channel, expected_amount, deal_in
 
 
 
-        # ======================
-        # DEAL ABSOLUTE EXPIRY
-        # ======================
-        # Load fresh deal data for last_activity
+        
+        
+        
+        
         try:
             d_tuple = get_deal_by_channel(channel.id)
             if d_tuple:
@@ -3871,12 +3819,12 @@ async def check_payment_multicurrency(address, channel, expected_amount, deal_in
         except: pass
 
         if current_time >= absolute_expiry_time:
-            # Check if wallet has funds before closing - NEVER close if has funds
+            
             try:
                 wallet_balance = await get_balance_for_currency(address, currency)
                 if wallet_balance > 0:
                     logger.info(f"[EXPIRY] Deal has funds ({wallet_balance}), skipping expiry - will never close with funds")
-                    await asyncio.sleep(30)  # Just wait and continue monitoring
+                    await asyncio.sleep(30)  
                     continue
             except Exception as e:
                 logger.info(f"[EXPIRY] Balance check error: {e}")
@@ -3896,7 +3844,7 @@ async def check_payment_multicurrency(address, channel, expected_amount, deal_in
                 try: await msg.delete()
                 except: pass
             
-            # Final data cleanup
+            
             data = load_all_data()
             if deal_id in data:
                 del data[deal_id]
@@ -3910,18 +3858,18 @@ async def check_payment_multicurrency(address, channel, expected_amount, deal_in
 
 
 
-        # ======================
+        
 
-        # TIMEOUT (NO PAYMENT)
+        
 
-        # ======================
+        
 
         if monitoring_elapsed >= payment_timeout and rescan_message is None:
             try:
-                # Use robust helper instead of strict confirmed only
+                
                 total_check = await get_balance_for_currency(address, currency)
                 
-                # CRITICAL: Only show timeout if API definitely says 0.
+                
                 if total_check == 0:
                     remaining = absolute_expiry_time - current_time
                     minutes_left = int(remaining // 60)
@@ -3936,38 +3884,38 @@ async def check_payment_multicurrency(address, channel, expected_amount, deal_in
                 logger.debug(f"[CheckPayment] Timeout check error: {e}")
                 pass
             
-        # [REMOVED PAUSE LOGIC]
-        # We NO LONGER pause checks if a timeout message is showing.
+        
+        
         if rescan_message:
-            pass # Keep going, do not continue loop
+            pass 
 
-        await asyncio.sleep(1.5)  # Faster detection (1.5s interval)
+        await asyncio.sleep(1.5)  
 
-        # RE-CHECK PAID STATUS (PREVENT OVERLAP)
+        
         deal_tuple = get_deal_by_channel(channel.id)
         if deal_tuple:
             _, current_deal = deal_tuple
-            # CRITICAL: Include ALL post-payment states to stop monitoring immediately
+            
             if current_deal and (current_deal.get('paid') or current_deal.get('status') in ['escrowed', 'completed', 'cancelled', 'awaiting_withdrawal', 'awaiting_confirmation', 'releasing']):
                 logger.debug(f"[CheckPayment] Deal {deal_id[:16]} verified or progressing during loop. Stopping.")
                 bot.active_monitors.discard(lock_key)
                 return
         else:
-            # If deal is gone, stop monitoring (or log warning)
+            
             logger.debug(f"[CheckPayment] Deal lost for channel {channel.id}. Stopping.")
             bot.active_monitors.discard(lock_key)
             return
 
 
 
-        # ======================
+        
 
-        # MAIN BALANCE CHECK
+        
 
-        # ======================
+        
 
         try:
-            # Determine tolerance (max 1% or flat 0.0001)
+            
             tolerance = min(0.0001, expected_amount * 0.01) if expected_amount > 0 else 0.0001
 
             if currency == "ltc":
@@ -3990,7 +3938,7 @@ async def check_payment_multicurrency(address, channel, expected_amount, deal_in
                 total = 0
                 is_confirmed = False
                 
-            # Log every check for debugging
+            
             if total > 0 or monitoring_elapsed % 30 < 2:
                 logger.debug(f"[MONITOR] Deal {deal_id[:8]} | {currency} | Val: {total} | Expected: {expected_amount} | Confirmed: {is_confirmed}")
                 
@@ -3999,7 +3947,7 @@ async def check_payment_multicurrency(address, channel, expected_amount, deal_in
             await asyncio.sleep(2)
             continue
 
-        # DISMISS TIMEOUT/EXPIRY if funds found
+        
         if total > 0 and rescan_message:
             try: 
                 await rescan_message.delete()
@@ -4007,38 +3955,38 @@ async def check_payment_multicurrency(address, channel, expected_amount, deal_in
             except: pass
 
 
-        # ======================
-        # AUTO-SWITCH CHAIN (USDT)
-        # ======================
+        
+        
+        
         if total == 0 and currency in ["usdt_bep20", "usdt_polygon"]:
             try:
                 alt_currency = "usdt_polygon" if currency == "usdt_bep20" else "usdt_bep20"
                 
-                # Check alternative
+                
                 if alt_currency == "usdt_bep20":
                      alt_total = await get_usdt_balance_parallel(USDT_BEP20_CONTRACT, address, BEP20_RPC_URLS, USDT_BEP20_DECIMALS)
                 else:
                      alt_total = await get_usdt_balance_parallel(USDT_POLYGON_CONTRACT, address, POLYGON_RPC_URLS, USDT_POLYGON_DECIMALS)
                 
-                # If valid payment found on other chain
+                
                 if alt_total > 0:
                      print(f"[AutoSwitch] Funds found on {alt_currency} ({alt_total}). Switching from {currency}.")
                      
-                     # 1. Update local vars
+                     
                      currency = alt_currency
                      total = alt_total
                      is_confirmed = total >= expected_amount
                      
-                     # 2. Update Deal Object
+                     
                      deal_info['currency'] = alt_currency
                      
-                     # 3. Save to DB
+                     
                      data = load_all_data()
                      if deal_id in data:
                          data[deal_id]['currency'] = alt_currency
                          save_all_data(data)
                          
-                     # 4. Notify
+                     
                      try:
                          sw_embed = discord.Embed(
                              title="Payment Chain Detected",
@@ -4052,38 +4000,38 @@ async def check_payment_multicurrency(address, channel, expected_amount, deal_in
 
 
 
-        # DEBUG LOGGING (TEMPORARY)
+        
         logger.debug(f"[DEBUG] Coin: {currency} | Address: {address} | Balance: {total} | Expected: {expected_amount}")
 
-        # NOTE: Gas funding moved to release phase (send_funds_with_fee)
-        # Sender pays their own gas when depositing to deal wallet
+        
+        
 
 
-        # PARTIAL
+        
         logger.debug(f"[DEBUG] Payment check: total={total}, last_balance={last_balance}, total>0={total > 0}, total>last_balance={total > last_balance}")
         if total > 0:
-            # If new funds came in since last check
+            
             if total > last_balance:
                 payment_txid = None
                 last_balance = total
                 logger.debug(f"[DEBUG] New balance detected: {total}")
                 
-                # Feedback: Payment Detected - PREMIUM UI
+                
                 if msg:
                     try:
                         currency_meta = get_currency_info(currency)
                         
-                        # Calculate rough USD for display
+                        
                         usd_approx = 0.0
                         try:
-                            # We might not have this function imported or available here context-wise, 
-                            # but check_payment_multicurrency is in main.py so it should be fine.
-                            # We need to await it.
-                            # Use cached price for immediate calculation
+                            
+                            
+                            
+                            
                             price = await get_cached_price(currency)
                             usd_approx = float(total) * float(price)
                         except:
-                            usd_approx = float(total) # Fallback
+                            usd_approx = float(total) 
 
                         detect_embed = discord.Embed(
                             title="✨ Verifying Transaction",
@@ -4103,29 +4051,29 @@ async def check_payment_multicurrency(address, channel, expected_amount, deal_in
                         detect_embed.set_thumbnail(url="https://cdn.discordapp.com/attachments/1438896774243942432/1446517314433454342/discotools-xyz-icon.png")
                         detect_embed.set_footer(text="RainyDay MM • Securing your transaction...")
 
-                        # 1. Edit immediately to show detection
+                        
                         await msg.edit(embed=detect_embed)
                         
-                        # 2. Now try to fetch TXID and update with button if found
+                        
                         seen_txids = deal_info.get("_seen_txids", [])
                         temp_txids_list = await fetch_txid_ultimate(address, currency)
                         
                         temp_txid = None
                         if temp_txids_list:
                             if isinstance(temp_txids_list, list):
-                                # Pick first one not in seen_txids? OR just the first one if it's the first payment.
-                                # For first payment, just pick [0]
+                                
+                                
                                 temp_txid = temp_txids_list[0]
-                                # Add to seen
+                                
                                 if temp_txid not in seen_txids:
                                     seen_txids.append(temp_txid)
                                     deal_info["_seen_txids"] = seen_txids
-                                    # Update DB (since we need to remember this for next payment)
+                                    
                                     data = load_all_data()
                                     data[deal_id]["_seen_txids"] = seen_txids
                                     save_all_data(data)
                             else:
-                                temp_txid = temp_txids_list # Legacy/String
+                                temp_txid = temp_txids_list 
 
                         if temp_txid:
                             payment_txid = temp_txid
@@ -4140,27 +4088,27 @@ async def check_payment_multicurrency(address, channel, expected_amount, deal_in
                     except Exception as e:
                         logger.debug(f"[DEBUG] Error updating detection message: {e}")
                 
-                # Update deal data
+                
                 deal_info["ltc_amount"] = float(total) 
                 usd_val = await currency_to_usd(float(total), currency)
                 deal_info["amount"] = float(usd_val) 
                 
-                # Save
+                
                 data = load_all_data()
                 data[deal_id] = deal_info
                 save_all_data(data)
                 
-                # Calculate difference
+                
                 difference = float(expected_amount) - total
                 
-                # TOLERANCE: Increased to 0.01 (1 cent) for USDT/USD-pegged assets to avoid friction with tiny "dust" differences.
-                # Previously it was 0.0001 which was too sensitive to network fee deductions or rounding.
+                
+                
                 tolerance = 0.01 if "usdt" in currency.lower() else (expected_amount * 0.001)
                 
                 if difference > tolerance:
                     print(f"[DEBUG-PARTIAL] Total: {total} | Expected: {expected_amount} | Diff: {difference} | LastNotify: {deal_info.get('last_partial_notification_amount')}")
-                    # PARTIAL
-                    # JIT check: Don't send partial if deal is already verified/processed
+                    
+                    
                     d_tup = get_deal_by_channel(channel.id)
                     if d_tup:
                         _, cd = d_tup
@@ -4169,14 +4117,14 @@ async def check_payment_multicurrency(address, channel, expected_amount, deal_in
                              bot.active_monitors.discard(lock_key)
                              return
 
-                    # Check if already notified for this amount
+                    
                     last_notified = deal_info.get("last_partial_notification_amount", -1)
                     if abs(float(total) - float(last_notified)) < 1e-9:
-                         # Already notified for this partial amount, skip embed
+                         
                         await asyncio.sleep(1)
                         continue
 
-                    # CLEANUP: Delete previous partial message if exists
+                    
                     last_partial_id = deal_info.get("last_partial_msg_id")
                     if last_partial_id:
                         try:
@@ -4200,10 +4148,10 @@ async def check_payment_multicurrency(address, channel, expected_amount, deal_in
                     view = PartialPaymentView(deal_id, deal_info, remaining, currency, txid=payment_txid)
                     partial_msg = await channel.send(embed=embed, view=view)
                     
-                    # Store ID for future cleanup
+                    
                     deal_info["last_partial_msg_id"] = partial_msg.id
 
-                    # Update notification state
+                    
                     deal_info["last_partial_notification_amount"] = float(total)
                     data = load_all_data()
                     if deal_id in data:
@@ -4215,7 +4163,7 @@ async def check_payment_multicurrency(address, channel, expected_amount, deal_in
 
 
                 elif total >= (float(expected_amount) - 0.0001):
-                    # JUST-IN-TIME CHECK: Final check of DB before sending message
+                    
                     updated_deal_tuple = get_deal_by_channel(channel.id)
                     if updated_deal_tuple:
                         _, updated_deal = updated_deal_tuple
@@ -4224,7 +4172,7 @@ async def check_payment_multicurrency(address, channel, expected_amount, deal_in
                             bot.active_monitors.discard(lock_key)
                             return
 
-                    # JUST-IN-TIME CHECK: Final check of DB before sending message
+                    
                     updated_deal_tuple = get_deal_by_channel(channel.id)
                     if updated_deal_tuple:
                         _, updated_deal = updated_deal_tuple
@@ -4233,7 +4181,7 @@ async def check_payment_multicurrency(address, channel, expected_amount, deal_in
                             bot.active_monitors.discard(lock_key)
                             return
                             
-                    # CLEANUP: Delete previous partial message if exists (since we are now Full)
+                    
                     last_partial_id = deal_info.get("last_partial_msg_id")
                     if last_partial_id:
                         try:
@@ -4241,45 +4189,45 @@ async def check_payment_multicurrency(address, channel, expected_amount, deal_in
                             await old_msg.delete()
                         except: pass
 
-                    # EXACT FULL PAYMENT - IMMEDIATE PREMIUM UI
+                    
                     logger.debug(f"[MONITOR] Full payment detected for {deal_id[:8]}. Proceeding to verification.")
                     
-                    # FETCH TXID
-                    # Expecting LIST for LTC, String for others? 
-                    # fetch_txid_ultimate now returns list for LTC.
+                    
+                    
+                    
                     
                     raw_tx_res = await fetch_txid_ultimate(address, currency)
                     txid = None
                     
                     if raw_tx_res:
                         if isinstance(raw_tx_res, list):
-                            # Find the NEW one
+                            
                             known = deal_info.get("_seen_txids", [])
-                            # Candidates are those in raw_tx_res NOT in known
+                            
                             candidates = [t for t in raw_tx_res if t not in known]
                             if candidates:
-                                txid = candidates[0] # Prefer new
+                                txid = candidates[0] 
                             else:
-                                txid = raw_tx_res[0] # Fallback to latest
+                                txid = raw_tx_res[0] 
                         else:
                             txid = raw_tx_res
 
-                    # Update USD Value
                     
-                    # Compute USD Value
+                    
+                    
                     usd_val = 0.0
                     try:
                         usd_val = float(total) * float(await get_cached_price(currency))
                     except:
-                        usd_val = float(total) # Fallback
+                        usd_val = float(total) 
 
-                    # Prepare Premium "Verifying" Embed
+                    
                     currency_meta = get_currency_info(currency)
                     
                     wait_embed = discord.Embed(
                         title="✨ Verifying Transaction",
                         description=f"We've detected payment of **{format_crypto_amount(total)} {currency_meta['name']}**. \nWaiting for on-chain confirmation before proceeding.",
-                        color=0xffaa00 # Rain yellow
+                        color=0xffaa00 
                     )
                     
                     if currency_meta['icon']:
@@ -4303,7 +4251,7 @@ async def check_payment_multicurrency(address, channel, expected_amount, deal_in
                     else:
                         wait_view.add_item(discord.ui.Button(label="Indexing...", style=discord.ButtonStyle.grey, disabled=True))
 
-                    # Update existing message if possible, otherwise send new
+                    
                     if msg:
                         try:
                             await msg.edit(embed=wait_embed, view=wait_view)
@@ -4318,37 +4266,29 @@ async def check_payment_multicurrency(address, channel, expected_amount, deal_in
 
 
 
-# ========================================
 
-# PARTIAL PAYMENT HANDLER (Original UI + Fast TXID)
 
-# ========================================
+
+
+
 
 async def handle_partial_payment_fast(channel, deal_info, received, expected, currency, msg, tx_hash):
 
-    """
-
-    PARTIAL PAYMENT HANDLER (Option A)
-
-    - LTC → keep NEW UI & behavior (DO NOT TOUCH)
-
-    - All other coins → restore OLD UI & explorer links
-
-    """
+    
 
 
 
     deal_id = deal_info["deal_id"]
 
-    buyer = deal_info["buyer"]          # RECEIVER
+    buyer = deal_info["buyer"]          
 
-    seller = deal_info["seller"]        # SENDER
+    seller = deal_info["seller"]        
 
     address = deal_info.get("address")
 
 
 
-    # Convert to USD
+    
 
     usd_received = await currency_to_usd(received, currency)
 
@@ -4356,7 +4296,7 @@ async def handle_partial_payment_fast(channel, deal_info, received, expected, cu
 
 
 
-    # Save updated amounts
+    
 
     data = load_all_data()
 
@@ -4368,7 +4308,7 @@ async def handle_partial_payment_fast(channel, deal_info, received, expected, cu
 
 
 
-    # Display names
+    
 
     cur_name = {
 
@@ -4386,15 +4326,15 @@ async def handle_partial_payment_fast(channel, deal_info, received, expected, cu
 
 
 
-    # ============================================================
+    
 
-    # FORCE TXID DETECTION IF NOT PROVIDED
+    
 
-    # ============================================================
+    
 
     if not tx_hash:
         try:
-                # Legacy flow
+                
             tx_res = await fetch_txid_ultimate(address, currency, max_attempts=12)
             tx_hash = tx_res[0] if isinstance(tx_res, list) and tx_res else tx_res
         except Exception as e:
@@ -4403,15 +4343,15 @@ async def handle_partial_payment_fast(channel, deal_info, received, expected, cu
 
 
 
-    # ============================================================
+    
 
-    # SPECIAL CASE → LTC USES YOUR NEW LOGIC (DO NOT TOUCH)
+    
 
-    # ============================================================
+    
 
     if currency == "ltc":
 
-        # Build NEW UI (your preferred design)
+        
 
         embed = discord.Embed(
 
@@ -4460,8 +4400,8 @@ async def handle_partial_payment_fast(channel, deal_info, received, expected, cu
 
 
         if msg:
-            # try: await msg.delete()
-            # except: pass
+            
+            
             pass
 
 
@@ -4494,15 +4434,15 @@ async def handle_partial_payment_fast(channel, deal_info, received, expected, cu
 
 
 
-    # ============================================================
+    
 
-    # OLD UI RESTORATION FOR USDT / SOL / ETH (Option A)
+    
 
-    # ============================================================
+    
 
 
 
-    # GAS CHECK FOR USDT CHAINS
+    
 
     if currency in ["usdt_bep20", "usdt_polygon"]:
 
@@ -4558,11 +4498,11 @@ async def handle_partial_payment_fast(channel, deal_info, received, expected, cu
 
 
 
-    # ============================================================
+    
 
-    # BUILD OLD UI (Restored)
+    
 
-    # ============================================================
+    
 
     embed = discord.Embed(
 
@@ -4576,7 +4516,7 @@ async def handle_partial_payment_fast(channel, deal_info, received, expected, cu
 
 
 
-    # Explorer link restored for all coins
+    
 
     if tx_hash:
 
@@ -4616,7 +4556,7 @@ async def handle_partial_payment_fast(channel, deal_info, received, expected, cu
 
 
 
-    # OLD UI Thumbnail restored
+    
 
     embed.set_thumbnail(
 
@@ -4626,16 +4566,16 @@ async def handle_partial_payment_fast(channel, deal_info, received, expected, cu
 
 
 
-    # Clean old msg
+    
 
     if msg:
-        # try: await msg.delete()
-        # except: pass
+        
+        
         pass
 
 
 
-    # Restore ToS UI
+    
 
     try:
 
@@ -4649,13 +4589,13 @@ async def handle_partial_payment_fast(channel, deal_info, received, expected, cu
 
 
 
-    # Send embed (old style)
+    
 
     await channel.send(f"<@{buyer}>", embed=embed, view=ProceedButton())
 
 
 
-    # Waiting UI restored
+    
 
     await channel.send(embed=discord.Embed(
 
@@ -4667,17 +4607,17 @@ async def handle_partial_payment_fast(channel, deal_info, received, expected, cu
 
     ))
 
-# ========================================
 
-# FULL PAYMENT HANDLER
 
-# ========================================
+
+
+
 
 async def handle_full_payment(
     channel, deal_info, received_amount, expected_amount,
     currency, address, msg=None, tx_hash=None
 ):
-    # CONCURRENCY GUARD
+    
     if not hasattr(bot, 'active_verifications'):
         bot.active_verifications = set()
     
@@ -4689,32 +4629,32 @@ async def handle_full_payment(
     bot.active_verifications.add(lock_key)
 
     try:
-        # Pre-check for completion
+        
         deal_id = deal_info.get('deal_id')
         data = load_all_data()
         deal_data = data.get(deal_id, {})
-        # If already paid or finished, stop.
+        
         if deal_data.get('status') in ['completed', 'cancelled', 'awaiting_withdrawal', 'refunded'] or deal_data.get('paid'):
-            # if msg:
-            #     try: await msg.delete()
-            #     except: pass
+            
+            
+            
             return
 
         buyer_id = deal_info['buyer']
         seller_id = deal_info['seller']
         
-        # Calculate initial USD Value
+        
         usd_val = await currency_to_usd(float(received_amount), currency)
         
-        # Mark as paid in DB
+        
         data[deal_id]["amount"] = float(usd_val)
         data[deal_id]["ltc_amount"] = float(received_amount)
         data[deal_id]["paid"] = True
         save_all_data(data)
 
-        # UI cleanup: (Removed redundant deletion of the message we use for verification)
+        
 
-        # Display formatting
+        
         currency_meta = {
             "ltc": {"name": "LTC", "icon": "https://cdn.discordapp.com/emojis/1457310421446037599.png"},
             "usdt_bep20": {"name": "USDT (BEP20)", "icon": "https://cdn.discordapp.com/emojis/1457310730423505009.png"},
@@ -4723,12 +4663,12 @@ async def handle_full_payment(
             "ethereum": {"name": "ETH", "icon": "https://cdn.discordapp.com/emojis/1252612760970330143.png"},
         }.get(currency, {"name": currency.upper(), "icon": None})
 
-        # Update Stats & Roles
+        
         try:
             update_user_stats(int(buyer_id), float(usd_val), float(received_amount), currency)
             update_user_stats(int(seller_id), float(usd_val), float(received_amount), currency)
             
-            # [GAMIFICATION] Check achievements
+            
             try:
                 buyer_obj = channel.guild.get_member(int(buyer_id)) or await bot.fetch_user(int(buyer_id))
                 seller_obj = channel.guild.get_member(int(seller_id)) or await bot.fetch_user(int(seller_id))
@@ -4746,21 +4686,21 @@ async def handle_full_payment(
                 if m2: await m2.add_roles(role)
         except: pass
 
-        # PREPARE PREMIUM WAIT EMBED
+        
         v_wait = discord.ui.View(timeout=None)
         button_added = False
         explorer_url = None
         confs = 0
         max_confs_seen = 0
         
-        # Multiple Buttons for Multi-Payment Support
+        
         seen_txids = deal_info.get("_seen_txids", [])
         
-        # If no seen_txids but we have tx_hash, use that (Legacy/Single)
+        
         if not seen_txids and tx_hash:
             seen_txids = [tx_hash]
             
-        # Ensure current recent one is included if not in seen (Edge Case)
+        
         if tx_hash and tx_hash not in seen_txids:
             seen_txids.append(tx_hash)
 
@@ -4768,18 +4708,18 @@ async def handle_full_payment(
             for idx, tx in enumerate(seen_txids):
                 url = get_explorer_url(currency, tx)
                 if url:
-                    # If only 1, use generic label. If multiple, use numbered label.
+                    
                     label = "View on Blockchain" if len(seen_txids) == 1 else f"View Payment {idx+1}"
                     v_wait.add_item(discord.ui.Button(label=label, url=url))
                     button_added = True
 
         if msg:
             wait_embed = msg.embeds[0]
-            # Immediate swap to remove old buttons
+            
             try: await msg.edit(view=v_wait)
             except: pass
         else:
-            # Fallback creation (shouldn't happen with new flow)
+            
             currency_meta = get_currency_info(currency)
             wait_embed = discord.Embed(
                 title="Payment Detected",
@@ -4799,12 +4739,12 @@ async def handle_full_payment(
             
             msg = await channel.send(embed=wait_embed, view=v_wait)
 
-        # CONFIRMATION & TXID RETRY LOOP
+        
         current_txid = tx_hash
         
-        # [FIX] Ensure embed structure is valid for the loop (must have 3 fields for fields[2] access)
+        
         if len(wait_embed.fields) < 3:
-            # Recreate the correct embed structure
+            
             wait_embed = discord.Embed(
                 title="Payment Detected",
                 description=f"We've detected payment of **{format_crypto_amount(received_amount)} {currency_meta['name']}**. \nWaiting for on-chain confirmation before proceeding.",
@@ -4821,25 +4761,25 @@ async def handle_full_payment(
             wait_embed.set_thumbnail(url="https://cdn.discordapp.com/attachments/1438896774243942432/1446517314433454342/discotools-xyz-icon.png")
             wait_embed.set_footer(text="RainyDay MM • Securing your transaction...")
             
-            # Update the message to reflect the fixed embed
+            
             if msg:
                 try: await msg.edit(embed=wait_embed, view=v_wait)
                 except: pass
         
-        last_ui_confs = -1  # Track last UI update to avoid redundant edits
-        for i in range(240): # Max 12 mins (240 * 3s = 720s)
+        last_ui_confs = -1  
+        for i in range(240): 
             try:
-                # 1. RETRY TXID if missing
+                
                 if not current_txid:
                     res_tx = await fetch_txid_ultimate(address, currency, max_attempts=1)
                     if res_tx:
                         current_txid = res_tx[0] if isinstance(res_tx, list) else res_tx
-                        # [FIX] Sync tx_hash so it's available for the final ReleaseButton panel
+                        
                         tx_hash = current_txid 
                     if current_txid:
                         explorer_url = get_explorer_url(currency, current_txid)
                 
-                # 2. Add Button once TXID is found
+                
                 if current_txid and not explorer_url:
                     explorer_url = get_explorer_url(currency, current_txid)
 
@@ -4849,7 +4789,7 @@ async def handle_full_payment(
                     try: await msg.edit(view=v_wait)
                     except: pass
 
-                # 3. CHECK CONFIRMATIONS (Parallel Strategy)
+                
                 tick_confs = 0 
                 if currency == "ltc":
                     res = await get_ltc_confirmations(current_txid)
@@ -4859,20 +4799,20 @@ async def handle_full_payment(
                         logger.info(f"[VERIFY_LOOP] LTC Confs: {tick_confs} | Max: {max_confs_seen}")
                 
                 elif currency in ["usdt_polygon", "usdt_bep20", "ethereum"]:
-                    # DUAL-TRACK: We check BOTH TXID and Balance simultaneously for maximum reliability
+                    
                     rpcs = []
                     if currency == "ethereum": rpcs = ETH_RPC_URLS
                     elif currency == "usdt_bep20": rpcs = BEP20_RPC_URLS
                     elif currency == "usdt_polygon": rpcs = POLYGON_RPC_URLS
                     
-                    # Track 1: TXID-based confirmations
+                    
                     if current_txid:
                         tick_confs = await get_evm_confirmations(current_txid, rpcs)
                         max_confs_seen = max(max_confs_seen, tick_confs)
                         if tick_confs > 0:
                             logger.info(f"[VERIFY_LOOP] EVM {currency} Confs: {tick_confs} | Max: {max_confs_seen}")
                     
-                    # Track 2: Balance-based Heartbeat Fallback (Ensures money isn't lost if indexing lags)
+                    
                     try:
                         check_bal = 0
                         smart_tol = min(0.0001, float(expected_amount) * 0.01)
@@ -4884,14 +4824,14 @@ async def handle_full_payment(
                             decs = USDT_POLYGON_DECIMALS if currency == "usdt_polygon" else USDT_BEP20_DECIMALS
                             check_bal = await get_usdt_balance_parallel(contract, address, rpcs, decs)
                         
-                        # Only trigger if balance is POSITIVE and enough (prevents error-return-0 issues)
+                        
                         if check_bal > 0 and check_bal >= (float(expected_amount) - smart_tol):
-                            # If balance is full but TXID shows < 1, boost to 1 to show progress
+                            
                             if max_confs_seen < 1:
                                 max_confs_seen = 1
                                 logger.info(f"[VERIFY_LOOP] {currency} Balance found ({check_bal}). Boosting confs to 1.")
                             
-                            # If balance is full and we've waited a bit, boost to 2
+                            
                             if i > 5 and max_confs_seen < 2: 
                                  max_confs_seen = 2
                                  logger.info(f"[VERIFY_LOOP] {currency} Balance persistent. Force verifying (Pulse 2).")
@@ -4903,7 +4843,7 @@ async def handle_full_payment(
                         tick_confs = await get_solana_confirmations(current_txid, SOLANA_RPC_URLS)
                         max_confs_seen = max(max_confs_seen, tick_confs)
                     
-                    # Solana Heartbeat Fallback
+                    
                     try:
                         check_bal = await get_solana_balance_parallel(address)
                         if check_bal >= (float(expected_amount) - 0.0001):
@@ -4911,14 +4851,14 @@ async def handle_full_payment(
                             if i > 5: max_confs_seen = 2
                     except: pass
 
-                # Sync confs for UI
+                
                 confs = max_confs_seen
 
-                # 4. UPDATE UI (Only when confirmations change to avoid Discord rate limits)
+                
                 status_icon = "⏳" if confs < 2 else "✅"
                 new_conf_text = f"`{status_icon} {confs}/2 Confirmations`"
                 
-                # Update UI only if confirmations changed
+                
                 if confs != last_ui_confs:
                     try:
                         if len(wait_embed.fields) > 2:
@@ -4943,9 +4883,9 @@ async def handle_full_payment(
                 import traceback
                 traceback.print_exc()
                 
-            await asyncio.sleep(3)  # Reduced API pressure while maintaining responsiveness
+            await asyncio.sleep(3)  
 
-        # FINAL STEP: SUCCESS TRANSITION
+        
         if confs < 2:
             logger.warning(f"[VERIFY] Timed out waiting for confirmations for {deal_id}. Aborting.")
             try:
@@ -4985,16 +4925,16 @@ async def handle_full_payment(
                 deals[deal_id]['txid'] = tx_hash
             save_all_data(deals)
 
-        # Generate Secure Banner
+        
         file_attachment = None
         try:
             from services.image_service import generate_handshake_image
             
-            # Get PFP URLs
+            
             buyer_user = bot.get_user(int(buyer_id))
             seller_user = bot.get_user(int(seller_id))
             
-            # Fallback if user not in cache (fetch)
+            
             if not buyer_user:
                 try: buyer_user = await bot.fetch_user(int(buyer_id))
                 except: pass
@@ -5002,7 +4942,7 @@ async def handle_full_payment(
                 try: seller_user = await bot.fetch_user(int(seller_id))
                 except: pass
 
-            # URL or default
+            
             buyer_pfp = "https://cdn.discordapp.com/embed/avatars/0.png"
             seller_pfp = "https://cdn.discordapp.com/embed/avatars/0.png"
             
@@ -5014,14 +4954,14 @@ async def handle_full_payment(
             banner_bytes = await generate_handshake_image(buyer_pfp, seller_pfp)
             file_attachment = discord.File(banner_bytes, filename="secure_deal.png")
             final_embed.set_image(url="attachment://secure_deal.png")
-            # Remove thumbnail if banner is present to avoid clutter, or keep it. User asked for banner.
-            # We'll remove thumbnail to match refresh_deal style usually, but code above set it.
-            # I will ensure thumbnail logic is removed or overwritten if I didn't include it in this block.
-            # I didn't include set_thumbnail in this replacement block, so it won't be set (good).
+            
+            
+            
+            
             
         except Exception as e:
             print(f"Banner generation failed in auto-confirm: {e}")
-            # Fallback thumbnail if banner fails
+            
             if c_info['icon']:
                 final_embed.set_thumbnail(url=c_info['icon'])
 
@@ -5034,8 +4974,8 @@ async def handle_full_payment(
             send_kwargs["file"] = file_attachment
 
         try:
-            # Attempt to edit the existing "Payment Detected" message to "Deal Confirmed"
-            # This avoids the "deleting panel" effect.
+            
+            
             await msg.edit(**send_kwargs)
         except Exception as edit_e:
             print(f"[VERIFY] Edit failed ({edit_e}), falling back to direct send.")
@@ -5043,7 +4983,7 @@ async def handle_full_payment(
                 await channel.send(**send_kwargs)
             except Exception as send_e:
                 print(f"[VERIFY] Failed to send confirmation embed with attachment: {send_e}")
-                # Fallback: Remove file and try again
+                
                 if "file" in send_kwargs:
                     del send_kwargs["file"]
                     try:
@@ -5056,11 +4996,11 @@ async def handle_full_payment(
     finally:
         bot.active_verifications.discard(lock_key)
 
-# =====================================================
 
-# UI COMPONENTS - CURRENCY SELECTION
 
-# =====================================================
+
+
+
 
 
 
@@ -5189,10 +5129,10 @@ class BuyerSellerModal(Modal, title="Fill properly below!"):
 
 
     async def on_submit(self, interaction: discord.Interaction):
-        # 1. Defer IMMEDIATELY to avoid timeout
+        
         await interaction.response.defer(ephemeral=True)
 
-        # 2. Check blacklist (cached now)
+        
         if blacklist_service.is_blacklisted(interaction.user.id):
             embed = discord.Embed(title="You are blacklisted from our services!", description="Appeal this in <#1428193038588579880>", color=discord.Color.red())
             return await interaction.followup.send(embed=embed, ephemeral=True)
@@ -5239,44 +5179,44 @@ class BuyerSellerModal(Modal, title="Fill properly below!"):
 
 
         try:
-            # FIX: Global Lock for Ticket Creation to prevent race conditions
+            
             async with TICKET_LOCK:
-                # Get next deal ID
+                
                 counter = load_counter()
                 new_channel_number = counter + 1
                 deal_prefix = f"auto-{new_channel_number}"
                 
-                # Check for existing channel with this name (Double safety)
+                
                 existing_channel = discord.utils.get(guild.text_channels, name=deal_prefix)
                 if existing_channel:
-                    # If it conflicts, skip ahead
+                    
                     new_channel_number += 1
                     deal_prefix = f"auto-{new_channel_number}"
 
-                # Save new counter IMMEDIATELY
+                
                 save_counter(new_channel_number)
                 
-                # Safe create with error handling
+                
                 try:
                     channel = await guild.create_text_channel(name=deal_prefix, category=main_cat, overwrites=overwrites)
                 except discord.HTTPException as e:
-                    if e.code == 429: # Rate Limit
-                         await asyncio.sleep(2) # Wait a bit
+                    if e.code == 429: 
+                         await asyncio.sleep(2) 
                          channel = await guild.create_text_channel(name=deal_prefix, category=main_cat, overwrites=overwrites)
                     else:
                         raise e
 
-            # Generate unique deal ID
+            
 
             deal_id = ''.join(random.choices(string.ascii_lowercase + string.digits, k=64))
             
-            # Optimization: Create single deal object and use update_deal
-            # No need to load all data!
+            
+            
             new_deal = {
                 "channel_id": str(channel.id),
 
-                "seller": "None",  # Now represents RECEIVER
-                "buyer": "None",  # Now represents SENDER
+                "seller": "None",  
+                "buyer": "None",  
 
                 "amount": 0.00,
                 "status": "started",
@@ -5298,14 +5238,14 @@ class BuyerSellerModal(Modal, title="Fill properly below!"):
                 "currency": self.currency
             }
             
-            # Efficient save
+            
             update_deal(channel.id, new_deal)
 
 
 
-            # Create DM embed with both user information and deal ID
             
-            # [OPTIMIZATION] Send DMs in background to avoid blocking interaction
+            
+            
             async def send_dms():
                 dm_embed = discord.Embed(
                     title="🎯 New Deal successfully created!",
@@ -5336,7 +5276,7 @@ class BuyerSellerModal(Modal, title="Fill properly below!"):
             
             asyncio.create_task(send_dms())
 
-            # Panel: Deal ID (Dedicated Embed for Channel)
+            
             embed_deal_id = discord.Embed(
                 title="Deal ID",
                 description=f"```\n{deal_id}\n```\n⚠️ **Save this deal id to recover your deals in case of acc termination, account limit, or lost account.**",
@@ -5345,7 +5285,7 @@ class BuyerSellerModal(Modal, title="Fill properly below!"):
 
             logo_url = "https://cdn.discordapp.com/attachments/1383487913186169032/1384932699717898300/Untitled-2.png"
             
-            # Panel 1: System / Shield (Restored as requested)
+            
             embed_system = discord.Embed(
                 title="RainyDay Auto MiddleMan System",
                 description=(
@@ -5373,7 +5313,7 @@ class BuyerSellerModal(Modal, title="Fill properly below!"):
             )
             embed_system.set_footer(text="RainyDay MM | Secure Trading Enforced", icon_url=logo_url)
 
-            # Panel 3: User Selection
+            
             embed_selection = discord.Embed(
                 title="User Selection",
                 description=(
@@ -5385,14 +5325,14 @@ class BuyerSellerModal(Modal, title="Fill properly below!"):
             embed_selection.set_author(name="RainyDay MM", icon_url=logo_url)
             embed_selection.set_thumbnail(url="https://cdn.discordapp.com/attachments/1383487913186169032/1384932699717898300/Untitled-2.png") 
 
-            # Panel 4: Security Advisory (Default English)
+            
             embed_caution = discord.Embed(
                 title="⚠️ Be Caution!",
                 description="If a seller asks you to send money to their address/UPI QR code first or claims that the bot will charge a fee (our mm service is completely free), be cautious it's most likely a scam. **NEVER PAY DIRECTLY TO THE SELLER.** Report it to the admin immediately, and we'll take action.",
                 color=discord.Color.red()
             )
 
-            # Send messages in the requested order: Mention -> DealID -> Shield -> Selection -> Caution
+            
             try:
                 await channel.send(content=f"{user.mention} {interaction.user.mention}")
                 msg_system = await channel.send(embed=embed_system, view=ToSButtonsAllInOne())
@@ -5403,7 +5343,7 @@ class BuyerSellerModal(Modal, title="Fill properly below!"):
                 await channel.send(f"⚠️ Critical Error sending tickets: {e}")
                 print(f"CRITICAL ERROR: {e}")
             
-            # Store system message ID for syncing
+            
             new_deal = load_all_data().get(deal_id)
             if new_deal:
                 new_deal["system_msg_id"] = msg_system.id
@@ -5421,11 +5361,11 @@ class BuyerSellerModal(Modal, title="Fill properly below!"):
 
 
 
-# =====================================================
 
-# EXISTING UI COMPONENTS (ALL PRESERVED)
 
-# =====================================================
+
+
+
 
 
 
@@ -5449,7 +5389,7 @@ class ToSButton(discord.ui.Button):
 
             
 
-        self.seller_id = deal['seller']  # Now represents RECEIVER
+        self.seller_id = deal['seller']  
 
         if interaction.user.id == int(self.seller_id):
 
@@ -5507,9 +5447,9 @@ class ToSModal(Modal, title="Please tell properly!"):
 
             
 
-        self.buyer_id = deal['buyer']  # Now represents RECEIVER
+        self.buyer_id = deal['buyer']  
 
-        self.seller_id = deal['seller']  # Now represents SENDER
+        self.seller_id = deal['seller']  
 
         await interaction.response.defer()
 
@@ -5521,7 +5461,7 @@ class ToSModal(Modal, title="Please tell properly!"):
             embed.add_field(name="ToS and Warranty", value=f"```\n{tos_val}\n```", inline=False)
             embed.set_thumbnail(url="https://cdn.discordapp.com/attachments/1438896774243942432/1446517343084740688/discotools-xyz-icon__2_-removebg-preview.png?ex=693445c1&is=6932f441&hm=5c3da62aeac41487f233c248bd8f20c108e1a43795335ad57f0db85349b7c99b&")
 
-            # Save Product Details to Data
+            
             deal_id, deal = get_deal_by_channel(interaction.channel.id)
             if deal:
                 deal["product_name"] = self.product.value
@@ -5541,9 +5481,9 @@ class ToSModal(Modal, title="Please tell properly!"):
 
                 
 
-            self.seller_id = deal['seller']  # Now represents SENDER
+            self.seller_id = deal['seller']  
 
-            self.buyer_id = deal['buyer']  # Now represents RECEIVER
+            self.buyer_id = deal['buyer']  
 
             await interaction.message.edit(embed=embed, view=ToSCoButtons(), content=f"<@{self.seller_id}> <@{self.buyer_id}>")
 
@@ -5561,9 +5501,9 @@ class ToSCoButtons(View):
 
     def __init__(self):
         super().__init__(timeout=None)
-        # self.lock = asyncio.Lock()  <-- Lock not strictly needed if we rely on atomic-ish DB writes or just race condition acceptance, but keeping it simple. 
-        # Actually, let's keep it simple and rely on single-threaded event loop unless high concurrency. 
-        # Removing instance vars.
+        
+        
+        
 
 
 
@@ -5590,11 +5530,11 @@ class ToSCoButtons(View):
             await interaction.response.send_message("Deal not found.", ephemeral=True)
             return
 
-        self.buyer = deal['buyer']    # SENDER (Buyer)
-        self.seller = deal['seller']  # RECEIVER (Seller)
+        self.buyer = deal['buyer']    
+        self.seller = deal['seller']  
         currency = deal.get("currency", "ltc")
 
-        # Load fresh data to avoid race conditions (simple approach)
+        
         data = load_all_data()
         if deal_id not in data:
              await interaction.response.send_message("Deal data missing.", ephemeral=True)
@@ -5602,7 +5542,7 @@ class ToSCoButtons(View):
         
         current_deal = data[deal_id]
         
-        # SENDER (BUYER) Agree
+        
         if interaction.user.id == int(self.buyer):
             if current_deal.get("tos_sender_agreed"):
                 await interaction.response.send_message("You have already agreed.", ephemeral=True)
@@ -5615,7 +5555,7 @@ class ToSCoButtons(View):
                 embed=discord.Embed(description=f"{interaction.user.mention} (Sender) has agreed.")
             )
 
-        # RECEIVER (SELLER) Agree
+        
         elif interaction.user.id == int(self.seller):
             if current_deal.get("tos_receiver_agreed"):
                 await interaction.response.send_message("You have already agreed.", ephemeral=True)
@@ -5632,8 +5572,8 @@ class ToSCoButtons(View):
             await interaction.response.send_message("You are not authorized to agree to this.", ephemeral=True)
             return
 
-        # Check if both agreed
-        # Reloading not strictly necessary since we just updated current_deal, but good practice
+        
+        
         sender_agreed = current_deal.get("tos_sender_agreed")
         receiver_agreed = current_deal.get("tos_receiver_agreed")
         tos_concluded = current_deal.get("tos_concluded", False)
@@ -5646,11 +5586,11 @@ class ToSCoButtons(View):
 
 
 
-            # ===========================================
+            
 
-            # SOLANA CUSTOM MINIMUM AMOUNT EMBED
+            
 
-            # ===========================================
+            
 
             if currency == "solana":
 
@@ -5690,11 +5630,11 @@ class ToSCoButtons(View):
 
 
 
-            # ===========================================
+            
 
-            # NON-SOLANA NORMAL AMOUNT EMBED
+            
 
-            # ===========================================
+            
 
             else:
 
@@ -5730,7 +5670,7 @@ class ToSCoButtons(View):
 
 
 
-            # WAIT FOR SENDER INPUT (was seller)
+            
 
             def check(m):
 
@@ -5758,11 +5698,11 @@ class ToSCoButtons(View):
 
 
 
-                        # ==============================
+                        
 
-                        # SOLANA MINIMUM CHECK
+                        
 
-                        # ==============================
+                        
 
                         if currency == "solana":
 
@@ -5790,11 +5730,11 @@ class ToSCoButtons(View):
 
 
 
-                        # ==============================
+                        
 
-                        # OTHER CURRENCIES MINIMUM
+                        
 
-                        # ==============================
+                        
 
                         else:
 
@@ -5814,7 +5754,7 @@ class ToSCoButtons(View):
 
 
 
-                        # SAVE AMOUNT
+                        
 
                         data = load_all_data()
 
@@ -5826,7 +5766,7 @@ class ToSCoButtons(View):
 
 
 
-                        # Confirm Embed
+                        
 
                         confirm_embed = discord.Embed(
 
@@ -5886,14 +5826,14 @@ class ToSCoButtons(View):
             await interaction.response.send_message("Deal not found.", ephemeral=True)
             return
 
-        self.seller = deal['seller']  # SENDER
-        self.buyer = deal['buyer']    # RECEIVER
+        self.seller = deal['seller']  
+        self.buyer = deal['buyer']    
 
         if str(interaction.user.id) not in [str(self.seller), str(self.buyer)]:
              await interaction.response.send_message("You are not authorized to cancel this.", ephemeral=True)
              return
 
-        # Reset database flags
+        
         data = load_all_data()
         if deal_id in data:
             data[deal_id]["tos_sender_agreed"] = False
@@ -6250,7 +6190,7 @@ class ConfButtons(discord.ui.View):
 
     def __init__(self):
         super().__init__(timeout=None)
-        # Stateless refactor: Removed self.buyer_confirmed/seller_confirmed, self.tos_sent
+        
 
 
 
@@ -6265,7 +6205,7 @@ class ConfButtons(discord.ui.View):
         buttone.callback = self.cancel_callback
         self.add_item(buttone)
 
-        # [TIMER] Extend Button
+        
         ext_btn = Button(label="Extend Timer (+15m)", style=discord.ButtonStyle.blurple, emoji="⏳", custom_id="extend_timer")
         ext_btn.callback = self.extend_callback
         self.add_item(ext_btn)
@@ -6277,7 +6217,7 @@ class ConfButtons(discord.ui.View):
         if not deal:
             return await interaction.response.send_message("Deal not found.", ephemeral=True)
             
-        # Check limit
+        
         current_extensions = deal.get("extensions", 0)
         if current_extensions >= 2:
             return await interaction.response.send_message("⏳ Timer extension limit reached (Max 2).", ephemeral=True)
@@ -6286,7 +6226,7 @@ class ConfButtons(discord.ui.View):
         if deal_id in data:
             data[deal_id]["payment_timeout"] = data[deal_id].get("payment_timeout", 1200) + (15 * 60)
             data[deal_id]["extensions"] = current_extensions + 1
-            data[deal_id]["last_activity"] = time.time()  # Prevent idle deletion
+            data[deal_id]["last_activity"] = time.time()  
             save_all_data(data)
             
         await interaction.response.send_message(f"✅ Payment timer extended by 15 minutes! (Used {current_extensions + 1}/2)", ephemeral=False)
@@ -6300,18 +6240,18 @@ class ConfButtons(discord.ui.View):
         if not deal:
             return await interaction.followup.send("Deal not found.", ephemeral=True)
 
-        self.seller = deal['seller']  # SENDER
-        self.buyer = deal['buyer']    # RECEIVER
+        self.seller = deal['seller']  
+        self.buyer = deal['buyer']    
 
         if uid != str(self.seller) and uid != str(self.buyer):
-             # Only participants can cancel
+             
              return await interaction.followup.send("You are not authorized to cancel.", ephemeral=True)
 
-        # Reset Logic
+        
         deal['seller'] = "None"
         deal['buyer'] = "None"
         
-        # Reset confirmation flags in DB since we are resetting roles
+        
         deal["conf_sender_confirmed"] = False
         deal["conf_receiver_confirmed"] = False
         deal["conf_tos_sent"] = False
@@ -6327,7 +6267,7 @@ class ConfButtons(discord.ui.View):
         em = discord.Embed(description=f"Cancelled by {interaction.user.mention}")
 
         try:
-             # Remove view instead of deleting message to preserve history
+             
              await interaction.message.edit(view=None)
         except:
              pass
@@ -6345,38 +6285,38 @@ class ConfButtons(discord.ui.View):
         if not deal:
              return await interaction.followup.send("Deal not found.", ephemeral=True)
 
-        uid = str(interaction.user.id)  # String for comparison with deal data
+        uid = str(interaction.user.id)  
         
-        # Optimization: Fetch ONLY this deal's data if needed, but we already have it from get_deal_by_channel
-        # We don't need load_all_data() here anymore!
+        
+        
         current_deal = deal 
 
-        self.seller = current_deal['seller']  # SENDER
-        self.buyer = current_deal['buyer']    # RECEIVER
+        self.seller = current_deal['seller']  
+        self.buyer = current_deal['buyer']    
 
-        # Validate User
+        
         if uid != str(self.buyer) and uid != str(self.seller):
              return await interaction.followup.send("You are not authorized to confirm this deal.", ephemeral=True)
 
-        # CHECK DB STATE
+        
         sender_conf = current_deal.get("conf_sender_confirmed", False)
         receiver_conf = current_deal.get("conf_receiver_confirmed", False)
         
-        # Check if already confirmed
+        
         if (uid == str(self.buyer) and sender_conf) or (uid == str(self.seller) and receiver_conf):
              return await interaction.followup.send("You have already confirmed.", ephemeral=True)
 
 
 
-        # UPDATE DB
-        if uid == str(self.buyer): # Buyer = Sender
+        
+        if uid == str(self.buyer): 
              current_deal["conf_sender_confirmed"] = True
              sender_conf = True
-        elif uid == str(self.seller): # Seller = Receiver
+        elif uid == str(self.seller): 
              current_deal["conf_receiver_confirmed"] = True
              receiver_conf = True
         
-        # Optimized Save: Only update this specific deal
+        
         update_deal(interaction.channel.id, current_deal)
         
         confirm_embed = discord.Embed(
@@ -6385,8 +6325,8 @@ class ConfButtons(discord.ui.View):
         )
         await interaction.channel.send(embed=confirm_embed)
 
-        # CHECK BOTH for transition
-        tos_sent = current_deal.get("conf_tos_sent", False) # New DB flag for "tos_sent"
+        
+        tos_sent = current_deal.get("conf_tos_sent", False) 
 
         if sender_conf and receiver_conf and not tos_sent:
             current_deal["conf_tos_sent"] = True
@@ -6420,9 +6360,7 @@ class TosView(View):
         self.add_item(ToSButton())
 
 def get_rich_user_display(guild, user_id_str):
-    """
-    Returns a formatted string: @Mention [username] (UserID)
-    """
+    
     if user_id_str in (None, "None", ""):
         return "None"
     
@@ -6449,20 +6387,20 @@ class ExtendButton(View):
         extension_count = deal.get("extension_count", 0)
         
         if extension_count >= 3:
-            # Disable button and update view
+            
             button.label = "Max Extensions Reached"
             button.style = discord.ButtonStyle.gray
             button.disabled = True
             await interaction.response.edit_message(view=self)
             return await interaction.followup.send("❌ Maximum extensions reached.", ephemeral=True)
 
-        # Update start time to NEW time (effectively resetting the timer)
+        
         deal["start_time"] = time.time()
         deal["role_warning_sent"] = False
         deal["extension_count"] = extension_count + 1
         update_deal(interaction.channel.id, deal)
 
-        # Update button label
+        
         new_count = deal["extension_count"]
         button.label = f"Extend Time ({new_count}/3)"
 
@@ -6483,9 +6421,9 @@ class SendButton(discord.ui.View):
         super().__init__(timeout=None)
 
 
-    # ============================
-    #      TIMER EXTENSION
-    # ============================
+    
+    
+    
     @discord.ui.button(label="Extend Time (+15m)", style=discord.ButtonStyle.blurple, row=2, custom_id="senextend")
     async def extend_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
         deal_id, deal = get_deal_by_channel(interaction.channel.id)
@@ -6495,20 +6433,20 @@ class SendButton(discord.ui.View):
         extension_count = deal.get("extension_count", 0)
         
         if extension_count >= 3:
-            # Disable button and update view
+            
             button.label = "Max Extensions Reached"
             button.style = discord.ButtonStyle.gray
             button.disabled = True
             await interaction.response.edit_message(view=self)
             return await interaction.followup.send("❌ Maximum extensions reached.", ephemeral=True)
             
-        # Update start time
+        
         deal["start_time"] = time.time()
         deal["role_warning_sent"] = False
         deal["extension_count"] = extension_count + 1
         update_deal(interaction.channel.id, deal)
         
-        # Update button label
+        
         new_count = deal["extension_count"]
         button.label = f"Extend Time ({new_count}/3)"
         
@@ -6524,17 +6462,17 @@ class SendButton(discord.ui.View):
 
 
 
-    # ============================
+    
 
-    #        SENDER BUTTON
+    
 
-    # ============================
+    
 
     @discord.ui.button(label="Sending", style=discord.ButtonStyle.gray, custom_id="sensend")
     async def set_sender(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.defer()
         
-        # Offload logic to background task to prevent blocking/timeout
+        
         asyncio.create_task(self._handle_set_sender(interaction))
 
     async def _handle_set_sender(self, interaction):
@@ -6546,34 +6484,34 @@ class SendButton(discord.ui.View):
             if not deal:
                 return await interaction.followup.send("Deal not found.", ephemeral=True)
 
-            # Prevent selecting role if already taken by OTHER user
-            # IF user is already receiver (seller field), cant be sender
+            
+            
             if deal["seller"] == user_id: 
                 return await interaction.followup.send("**You can't select both roles.**", ephemeral=True)
 
-            # Check if Sender (buyer field) is already taken
+            
             if deal["buyer"] != "None" and deal["buyer"] != user_id:
                 return await interaction.followup.send("Sender role is already taken.", ephemeral=True)
 
-            # Update DB - SENDER = buyer field
+            
             deal["buyer"] = user_id
             update_deal(channel_id, deal)
 
-            # Update Embed
+            
             await self.update_message(interaction, deal)
         except Exception as e:
             print(f"Set Sender Error: {e}")
 
-    # ============================
+    
 
-    #        RECEIVER BUTTON
+    
 
-    # ============================
+    
 
     @discord.ui.button(label="Receiving", style=discord.ButtonStyle.gray, custom_id="recres")
     async def set_receiver(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.defer()
-        # Offload logic
+        
         asyncio.create_task(self._handle_set_receiver(interaction))
 
     async def _handle_set_receiver(self, interaction):
@@ -6585,18 +6523,18 @@ class SendButton(discord.ui.View):
             if not deal:
                 return await interaction.followup.send("Deal not found.", ephemeral=True)
 
-            # IF user is already sender (buyer field), cant be receiver
+            
             if deal["buyer"] == user_id:
                 return await interaction.followup.send("**You can't select both roles.**", ephemeral=True)
 
             if deal["seller"] != "None" and deal["seller"] != user_id:
                 return await interaction.followup.send("Receiver role is already taken.", ephemeral=True)
 
-            # Update DB - RECEIVER = seller field
+            
             deal["seller"] = user_id
             update_deal(channel_id, deal)
 
-            # Update Embed
+            
             await self.update_embed(interaction, deal)
         except Exception as e:
             print(f"Set Receiver Error: {e}")
@@ -6615,7 +6553,7 @@ class SendButton(discord.ui.View):
             deal["seller"] = "None"
             deal["buyer"] = "None"
             
-            # Fix: Clear confirmation flags to prevent premature progress if roles are swapped
+            
             deal["amt_sender_confirmed"] = False
             deal["amt_receiver_confirmed"] = False
             deal["amount_final_embed_sent"] = False
@@ -6626,14 +6564,14 @@ class SendButton(discord.ui.View):
             print(f"Reset Error: {e}")
 
     async def update_message(self, interaction, deal):
-        # Re-use update_embed logic but calling it update_message for clarity in this view context
+        
         await self.update_embed(interaction, deal)
 
-    # ============================
+    
 
-    #        UPDATE EMBED
+    
 
-    # ============================
+    
 
     async def update_embed(self, interaction: discord.Interaction, deal):
         sender = deal["buyer"]
@@ -6642,7 +6580,7 @@ class SendButton(discord.ui.View):
         
         logo_url = "https://cdn.discordapp.com/attachments/1383487913186169032/1384932699717898300/Untitled-2.png"
         
-        # 1. Update the current "User Selection" embed
+        
         sender_display = get_rich_user_display(interaction.guild, sender)
         receiver_display = get_rich_user_display(interaction.guild, receiver)
 
@@ -6660,7 +6598,7 @@ class SendButton(discord.ui.View):
         
         await interaction.message.edit(embed=embed_selection, view=self)
 
-        # 2. Sync with the "System / Shield" panel
+        
         system_msg_id = deal.get("system_msg_id")
         msg_system = None
         
@@ -6671,7 +6609,7 @@ class SendButton(discord.ui.View):
                 pass
         
         if not msg_system:
-            # Fallback: Search recent messages if ID is missing
+            
             async for m in interaction.channel.history(limit=15):
                 if m.embeds and "RainyDay Auto MiddleMan System" in (m.embeds[0].title or ""):
                     msg_system = m
@@ -6680,7 +6618,7 @@ class SendButton(discord.ui.View):
         if msg_system and msg_system.embeds:
             old_embed = msg_system.embeds[0]
             
-            # Reconstruct the description with updated roles
+            
             sender_display = f"<@{sender}>" if sender != "None" else "`None` (Click to set below)"
             receiver_display = f"<@{receiver}>" if receiver != "None" else "`None` (Click to set below)"
             
@@ -6714,7 +6652,7 @@ class SendButton(discord.ui.View):
 
 
 
-        # If both roles selected, send confirmation
+        
 
         if sender != "None" and receiver != "None":
 
@@ -6742,7 +6680,7 @@ class SendButton(discord.ui.View):
 
 
 
-            # Remove view instead of deleting message to preserve history
+            
             await interaction.message.edit(view=None)
 
             await interaction.channel.send(embed=confirm, view=ConfButtons())
@@ -6753,10 +6691,10 @@ class AmountConButton(View):
 
     def __init__(self):
         super().__init__(timeout=None)
-        # Stateless refactor: Removed self.seller_con, self.buyer_con
-        # self.final_embed_sent is also problematic if stored in memory, 
-        # but logically we can check if we proceed to next step or check DB. 
-        # For now, let's rely on DB checks.
+        
+        
+        
+        
 
 
 
@@ -6789,9 +6727,9 @@ class AmountConButton(View):
 
 
 
-        # deal['buyer'] = SENDER, deal['seller'] = RECEIVER
-        self.buyer_id = deal["buyer"]   # SENDER
-        self.seller_id = deal["seller"] # RECEIVER
+        
+        self.buyer_id = deal["buyer"]   
+        self.seller_id = deal["seller"] 
 
         self.currency = deal.get("currency", "ltc")
 
@@ -6799,7 +6737,7 @@ class AmountConButton(View):
 
         if self.currency == "solana":
 
-            sol_min_fee = 0.00206  # network rent + gas
+            sol_min_fee = 0.00206  
 
             sol_fee_usd = await currency_to_usd(sol_min_fee, "solana")
 
@@ -6891,11 +6829,11 @@ class AmountConButton(View):
 
 
 
-                    # ======================================================
+                    
 
-                    # 🔥 ACTUAL VALIDATION CHECK (ENFORCE MINIMUM)
+                    
 
-                    # ======================================================
+                    
 
                     if self.currency == "solana":
 
@@ -6927,7 +6865,7 @@ class AmountConButton(View):
 
                     else:
 
-                        # Non-solana currencies
+                        
 
                         if amount < 0.1:
 
@@ -6941,7 +6879,7 @@ class AmountConButton(View):
 
 
 
-                    # Save amount
+                    
 
                     data = load_all_data()
 
@@ -6949,7 +6887,7 @@ class AmountConButton(View):
 
                         data[deal_id]["amount"] = amount
 
-                        # Fix: Clear previous confirmations when amount changes
+                        
                         data[deal_id]["amt_sender_confirmed"] = False
                         data[deal_id]["amt_receiver_confirmed"] = False
                         data[deal_id]["amount_final_embed_sent"] = False
@@ -7009,7 +6947,7 @@ class AmountConButton(View):
 
 
     async def confirm(self, interaction: discord.Interaction):
-        # Fix: Add processing lock to prevent race conditions (double clicks)
+        
         deal_id, deal = get_deal_by_channel(interaction.channel.id)
         if deal:
             if deal.get('_processing_confirm'):
@@ -7019,7 +6957,7 @@ class AmountConButton(View):
         try:
             await interaction.response.defer()
 
-            # deal_id, deal = get_deal_by_channel(...) # Already retrieved
+            
             if not deal:
                 return await interaction.followup.send("Deal not found.", ephemeral=True)
 
@@ -7029,16 +6967,16 @@ class AmountConButton(View):
                 return await interaction.followup.send("Deal data missing.", ephemeral=True)
 
             uid = str(interaction.user.id)
-            buyer_id = str(current_deal.get("buyer"))  # SENDER
-            seller_id = str(current_deal.get("seller")) # RECEIVER
+            buyer_id = str(current_deal.get("buyer"))  
+            seller_id = str(current_deal.get("seller")) 
 
-            # 1. Update confirmation state
-            if uid == buyer_id: # Buyer = Sender
+            
+            if uid == buyer_id: 
                 if current_deal.get("amt_sender_confirmed"):
                     return await interaction.followup.send("You have already confirmed.", ephemeral=True)
                 current_deal["amt_sender_confirmed"] = True
                 await interaction.channel.send(embed=discord.Embed(description=f"{interaction.user.mention} (Sender) has confirmed amount."))
-            elif uid == seller_id: # Seller = Receiver
+            elif uid == seller_id: 
                 if current_deal.get("amt_receiver_confirmed"):
                     return await interaction.followup.send("You have already confirmed.", ephemeral=True)
                 current_deal["amt_receiver_confirmed"] = True
@@ -7051,14 +6989,14 @@ class AmountConButton(View):
             if deal:
                 deal['_processing_confirm'] = False
 
-        # 2. Check if BOTH confirmed
+        
         if current_deal.get("amt_sender_confirmed") and current_deal.get("amt_receiver_confirmed"):
             if not current_deal.get("amount_final_embed_sent"):
                 
                 amount_usd = float(current_deal.get("amount", 0))
                 currency = current_deal.get("currency", "ltc")
 
-                # Generate payment info FIRST to catch errors
+                
                 try:
                     crypto_amount = await usd_to_currency_amount(amount_usd, currency)
                     wallet = await generate_wallet_for_currency(deal_id, currency)
@@ -7073,7 +7011,7 @@ class AmountConButton(View):
                     print(f"Error generating wallet/crypto amount: {e}")
                     return await interaction.followup.send("Error initializing payment system. Please try confirming again.", ephemeral=True)
 
-                # Store wallet info (BUT DO NOT mark as sent yet, in case sending fails)
+                
                 data = load_all_data() 
                 if deal_id in data:
                     data[deal_id].update({
@@ -7085,13 +7023,13 @@ class AmountConButton(View):
                     })
                     save_all_data(data)
 
-                # Remove buttons from the confirmation message
+                
                 try:
                     await interaction.message.edit(view=None)
                 except:
                     pass
 
-                # Format display
+                
                 currency_display = {
                     'ltc': 'Litecoin',
                     'usdt_bep20': 'USDT (BEP20)',
@@ -7113,30 +7051,30 @@ class AmountConButton(View):
                 embed.add_field(name="USD Amount", value=f"{amount_usd}$", inline=True)
                 embed.set_footer(text="➤ RainyDay MM | Transaction Confirmed")
 
-                # Send Invoice
+                
                 await interaction.channel.send(content=f"<@{buyer_id}>", embed=embed, view=AddyButtons())
 
-                # NOW mark as sent, since we successfully sent the message
+                
                 current_deal["amount_final_embed_sent"] = True
                 
-                # Update DB with flag
+                
                 if deal_id in data:
                     data[deal_id]["amount_final_embed_sent"] = True
                     save_all_data(data)
 
-                # Payment Timeout Note
+                
                 timeout_embed = discord.Embed(
                     description="-# Note - If you don't send the amount within 20 minutes, the deal will be cancelled.",
                     color=0x0000ff
                 )
                 await interaction.channel.send(embed=timeout_embed)
 
-                # Special consideration for USDT (Gas warning)
-                # if currency in ["usdt_bep20", "usdt_polygon"]:
-                #     await send_usdt_wallet_with_gas_embed(interaction, deal_id, currency, address)
+                
+                
+                
 
 
-                # Send "Waiting" message and start checker
+                
                 em_wait = discord.Embed(description="*Waiting for transaction...*")
                 em_wait.set_author(name="Payment Status", icon_url="https://cdn.discordapp.com/emojis/1324706325112164404.gif")
                 msg = await interaction.channel.send(embed=em_wait)
@@ -7175,7 +7113,7 @@ class AddyButtons(View):
         if not deal:
             return await interaction.response.send_message("Deal not found.", ephemeral=True)
             
-        # Update activity
+        
         try:
             data = load_all_data()
             if deal_id in data:
@@ -7188,10 +7126,10 @@ class AddyButtons(View):
         addy = deal.get('address')
         amount = deal.get('expected_crypto_amount', deal.get('ltc_amount', 0))
         
-        # Authorization check
+        
         try:
             is_auth = False
-            # Only Buyer can copy the address
+            
             if buyer_id != 'None' and interaction.user.id == int(buyer_id): is_auth = True
         except:
             is_auth = False
@@ -7213,7 +7151,7 @@ class AddyButtons(View):
         if not deal:
             return await interaction.response.send_message("Deal not found.", ephemeral=True)
             
-        # Update activity
+        
         try:
             data = load_all_data()
             if deal_id in data:
@@ -7227,9 +7165,9 @@ class AddyButtons(View):
         amount = deal.get('expected_crypto_amount', deal.get('ltc_amount', 0))
         currency_tag = deal.get('currency', 'ltc')
 
-        # Authorization check
+        
         is_auth = False
-        # Only Buyer can scan QR
+        
         try:
             if buyer_id != 'None' and interaction.user.id == int(buyer_id): is_auth = True
         except:
@@ -7241,7 +7179,7 @@ class AddyButtons(View):
 
             await interaction.response.defer(ephemeral=True)
             
-            # [MOBILE] Use BIP21 URI for auto-fill
+            
             uri = addy
             try:
                 f_amount = float(amount)
@@ -7319,16 +7257,16 @@ class ProceedButton(View):
 
             
 
-        buyer = deal['buyer']  # Now represents RECEIVER
+        buyer = deal['buyer']  
 
-        seller = deal['seller']  # Now represents SENDER
+        seller = deal['seller']  
 
         currency = deal.get('currency', 'ltc')
 
         
 
-        if interaction.user.id == int(seller):  # SENDER confirms
-           # Fix: Add processing lock
+        if interaction.user.id == int(seller):  
+           
            if deal.get('_processing_process'):
                return await interaction.response.send_message("Processing...", ephemeral=True)
            deal['_processing_process'] = True
@@ -7350,7 +7288,7 @@ class ProceedButton(View):
     
                   
     
-                  # Check balance based on currency
+                  
     
                   if currency == 'ltc':
     
@@ -7436,14 +7374,14 @@ class ProceedButton(View):
 
             
 
-        seller = deal['seller']  # Now represents SENDER
+        seller = deal['seller']  
 
         currency = deal.get('currency', 'ltc')
 
         
 
-        if interaction.user.id == int(seller):  # SENDER cancels
-            # Fix: Add processing lock
+        if interaction.user.id == int(seller):  
+            
             if deal.get('_processing_cancel'):
                 return await interaction.response.send_message("Processing...", ephemeral=True)
             deal['_processing_cancel'] = True
@@ -7457,9 +7395,9 @@ class ProceedButton(View):
 
                 await interaction.channel.send(embed=embed)
 
-                seller_id = int(deal['seller'])  # SENDER ID
+                seller_id = int(deal['seller'])  
 
-                buyer_id = int(deal['buyer'])  # RECEIVER ID
+                buyer_id = int(deal['buyer'])  
 
                 currency_display = {
                     'ltc': 'LTC',
@@ -7539,9 +7477,9 @@ class RescanButton(View):
 
             
 
-        seller_id = int(deal['seller'])  # Now represents SENDER
+        seller_id = int(deal['seller'])  
 
-        buyer_id = int(deal['buyer'])  # Now represents RECEIVER
+        buyer_id = int(deal['buyer'])  
 
         
 
@@ -7573,7 +7511,7 @@ class RescanButton(View):
 
         await interaction.response.defer()
 
-        # Remove view instead of deleting message to preserve history
+        
         await interaction.message.edit(view=None)
 
         
@@ -7626,11 +7564,11 @@ class ContactModModal(Modal):
         await interaction.response.defer()
         issue_text = self.issue_input.value.strip()
         
-        # 1. Lock the deal
+        
         self.deal['mod_locked'] = True
         update_deal(interaction.channel_id, self.deal)
         
-        # 2. Notify in ticket channel
+        
         embed = discord.Embed(
             title="🛑 Moderator Requested",
             description=f"{interaction.user.mention} has requested moderator assistance. The Release and Cancel buttons are now **locked** until a moderator clears this request.",
@@ -7638,7 +7576,7 @@ class ContactModModal(Modal):
         )
         await interaction.channel.send(embed=embed)
         
-        # 3. Send detailed request to Support/Logs Channel
+        
         target_channel_id = CONTACT_MOD_LOG_CHANNEL_ID if CONTACT_MOD_LOG_CHANNEL_ID else SUPPORT_CHANNEL_ID
         support_chan = bot.get_channel(target_channel_id)
         
@@ -7659,7 +7597,7 @@ class ContactModModal(Modal):
                 support_embed.add_field(name="Issue Description", value=f"```\n{issue_text}\n```", inline=False)
                 support_embed.set_footer(text=f"User ID: {interaction.user.id}")
                 
-                # Add jump link to channel
+                
                 jump_url = f"https://discord.com/channels/{interaction.guild_id}/{interaction.channel_id}"
                 view = discord.ui.View()
                 view.add_item(discord.ui.Button(label="Jump to Ticket", url=jump_url))
@@ -7690,9 +7628,9 @@ class ReleaseButton(View):
 
         self.add_item(self.cancel_button)
 
-        self.seller_con = False  # Now represents SENDER confirmation
+        self.seller_con = False  
 
-        self.buyer_con = False  # Now represents RECEIVER confirmation
+        self.buyer_con = False  
 
         self.lock = asyncio.Lock()
 
@@ -7704,7 +7642,7 @@ class ReleaseButton(View):
         self.mod_button.callback = self.contact_mod
         self.add_item(self.mod_button)
 
-        # Add "View on Blockchain" button if txid is provided
+        
         if txid and currency:
             explorer_url = get_explorer_url(currency, txid)
             if explorer_url:
@@ -7748,7 +7686,7 @@ class ReleaseButton(View):
             await interaction.response.send_message("Deal not found.", ephemeral=True)
             return
 
-        # Open the modal instead of direct action
+        
         await interaction.response.send_modal(ContactModModal(deal_id, deal))
 
 
@@ -7779,7 +7717,7 @@ class ReleaseButton(View):
 
 
 
-        if interaction.user.id == seller_id:  # SENDER cancels
+        if interaction.user.id == seller_id:  
 
             if getattr(self, "seller_con", False):
 
@@ -7789,7 +7727,7 @@ class ReleaseButton(View):
 
             self.seller_con = True
 
-        elif interaction.user.id == buyer_id:  # RECEIVER cancels
+        elif interaction.user.id == buyer_id:  
 
             if getattr(self, "buyer_con", False):
 
@@ -7895,7 +7833,7 @@ class ReleaseButton(View):
 
         
 
-        if interaction.user.id == buyer_id:  # RECEIVER releases funds to SENDER
+        if interaction.user.id == buyer_id:  
 
             await interaction.response.defer()
 
@@ -7923,7 +7861,7 @@ class ReleaseButton(View):
 
             await interaction.followup.send(embed=embed, view=ReleaseConButton())
 
-            # Remove view instead of deleting message to preserve history
+            
             await interaction.message.edit(view=None)
 
         else:
@@ -7943,7 +7881,7 @@ class RefundInitiationView(View):
 
     @discord.ui.button(label="Provide Refund Address", style=discord.ButtonStyle.green, custom_id="refund_provide_addy")
     async def provide_addy(self, interaction: discord.Interaction, button: discord.ui.Button):
-        # Restriction: Only SENDER (Buyer / buyer key in code) can provide address
+        
         sender_id = int(self.deal.get('buyer', 0))
         if interaction.user.id != sender_id:
              return await interaction.response.send_message("Only the Buyer (transaction sender) can provide the refund address.", ephemeral=True)
@@ -7962,7 +7900,7 @@ class PartialPaymentView(View):
         
     @discord.ui.button(label="Continue", style=discord.ButtonStyle.green, custom_id="partial_continue")
     async def continue_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
-        # Restriction: Only RECEIVER (Seller / seller key) can accept a partial payment as full
+        
         receiver_id = int(self.deal.get('seller', 0))
         if interaction.user.id != receiver_id:
             return await interaction.response.send_message("Only the receiver (Seller) can choose to accept a partial payment as full.", ephemeral=True)
@@ -7972,14 +7910,14 @@ class PartialPaymentView(View):
             
         await interaction.response.defer()
 
-        # ACCEPT PARTIAL AS FULL
-        # We process the current 'ltc_amount' (total paid) as the final accepted amount.
         
-        # 1. Update Expected Amount to match Paid (so it doesn't look like underpayment anymore)
+        
+        
+        
         current_paid = self.deal.get('ltc_amount', 0)
         self.deal['expected_crypto_amount'] = float(current_paid)
         
-        # Save updated expectation
+        
         try:
              d = load_all_data()
              if self.deal_id in d:
@@ -7987,25 +7925,25 @@ class PartialPaymentView(View):
                  save_all_data(d)
         except: pass
 
-        # 2. Trigger Full Payment Flow
-        # This will show 'Verifying Transaction' -> 'Release Panel'
+        
+        
         await handle_full_payment(
             interaction.channel, 
             self.deal, 
             current_paid, 
-            current_paid, # Expected = Paid
+            current_paid, 
             self.currency, 
             self.deal.get('address'), 
             msg=interaction.message, 
             tx_hash=self.txid
         )
         
-        # Note: handle_full_payment sets 'paid=True' and stops monitor_wallet.
+        
         return
 
     @discord.ui.button(label="Cancel with Refund", style=discord.ButtonStyle.red, custom_id="partial_cancel")
     async def cancel_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
-        # Allow both Sender (Buyer) and Receiver (Seller) to initiate
+        
         receiver_id = int(self.deal.get('seller', 0))
         sender_id = int(self.deal.get('buyer', 0))
         
@@ -8014,11 +7952,11 @@ class PartialPaymentView(View):
             
         await interaction.response.defer()
         
-        # 1. Update the original message to remove buttons
+        
         try: await interaction.message.edit(view=None)
         except: pass
         
-        # 2. Send the Refund Initiation embed
+        
         embed = discord.Embed(
             title="⚠️ Refund Requested",
             description=(
@@ -8044,42 +7982,42 @@ class OverpaymentView(View):
         
     @discord.ui.button(label="Accept Excess Amount", style=discord.ButtonStyle.green, custom_id="overpay_accept")
     async def accept_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
-        # Restriction: Only Sender (Buyer / buyer key) can accept overpayment (giving it to seller)
+        
         sender_id = int(self.deal_info.get('buyer', 0))
         if interaction.user.id != sender_id:
             return await interaction.response.send_message("Only the sender (Buyer) can decide to accept overpayment.", ephemeral=True)
 
         await interaction.response.defer()
         
-        # Proceed to full payment handler
-        # We clean up the view/embed first or let handle_full_payment do it?
-        # handle_full_payment sends a new Main Embed. We should probably delete this warning.
+        
+        
+        
         try: 
-            # Remove view instead of deleting message to preserve history
+            
             await interaction.message.edit(view=None)
         except: 
             pass
             
-        # Call the original full payment handler
+        
         deal_info_updated = self.deal_info
-        # Ensure correct amount is recorded? stored in deal_info already by loop
         
-        # We need to access handle_full_payment. It's an async global function.
-        # We need to recreate the arguments.
-        # Note: We might be inside a class method so we need to ensure scope is fine.
-        # Ideally, we call it directly.
         
-        # Re-fetch deal deal_id just in case? No, pass deal_info
         
-        # Since handle_full_payment is async, we await it.
-        # Logic:
+        
+        
+        
+        
+        
+        
+        
+        
         address = self.deal_info['address']
         await handle_full_payment(self.channel, self.deal_info, self.received, self.expected, self.currency, address, self.msg, self.txid)
 
 
     @discord.ui.button(label="Cancel with Refund", style=discord.ButtonStyle.red, custom_id="overpay_cancel")
     async def cancel_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
-        # Allow both Sender (Buyer) and Receiver (Seller) to initiate
+        
         receiver_id = int(self.deal_info.get('seller', 0))
         sender_id = int(self.deal_info.get('buyer', 0))
         
@@ -8088,18 +8026,18 @@ class OverpaymentView(View):
             
         await interaction.response.defer()
         
-        # 1. Update the original message to remove buttons
+        
         try: await interaction.message.edit(view=None)
         except: pass
         
-        # deal_id extraction
+        
         deal_id = None
         for k, v in load_all_data().items():
             if v.get('address') == self.deal_info.get('address'):
                 deal_id = k
                 break
 
-        # 2. Send the Refund Initiation embed
+        
         embed = discord.Embed(
             title="⚠️ Refund Requested (Overpayment)",
             description=(
@@ -8137,13 +8075,13 @@ class RefundModal(Modal):
             return await interaction.followup.send(f"Invalid {self.currency_display} address.", ephemeral=True)
             
         try:
-            # REFUND: Send funds back (MAX - gas)
-            # We pass amount=None to send everything
+            
+            
             tx_hash = await send_funds_based_on_currency(self.deal, address, amount=None)
             
             explorer_url = get_explorer_url(self.currency, tx_hash)
             
-            # Helper to get user ID safely
+            
             buyer_id = self.deal.get('buyer', 'Unknown')
             
             embed = discord.Embed(
@@ -8162,7 +8100,7 @@ class RefundModal(Modal):
             
             await interaction.followup.send(embed=embed, view=view)
             
-            # Mark as finalized for 100s close
+            
             deals = load_all_data()
             if self.deal_id in deals:
                 deals[self.deal_id]['status'] = 'refunded'
@@ -8172,7 +8110,7 @@ class RefundModal(Modal):
             await interaction.channel.send("Refund complete. Closing channel in 100s...")
             await asyncio.sleep(100)
             
-            # Sweep Dust
+            
             await sweep_dust_fees(self.deal_id, self.deal)
             
             await interaction.channel.delete()
@@ -8210,7 +8148,7 @@ class WithdrawalModal(Modal):
             ltc_amount = self.deal.get('ltc_amount', 0)
             usd_amount = self.deal.get('amount', 0)
             
-            # Show "Processing" status
+            
             process_em = discord.Embed(
                 title="Withdrawal Processing",
                 description="*Preparing transaction...*",
@@ -8218,10 +8156,10 @@ class WithdrawalModal(Modal):
             )
             status_msg = await interaction.channel.send(embed=process_em)
 
-            # Send funds with fee deduction (passes status_msg for gas funding updates)
+            
             result = await send_funds_with_fee(self.deal, address, status_msg=status_msg)
             
-            # Final Status Update
+            
             try: await status_msg.delete()
             except: pass
             
@@ -8232,7 +8170,7 @@ class WithdrawalModal(Modal):
             
             explorer_url = get_explorer_url(self.currency, main_tx)
             
-            # Build the embed with transaction details
+            
             description = f"**Recipient:** <@{seller_id}>\n"
             description += f"**Address:** {address}\n\n"
             
@@ -8260,17 +8198,17 @@ class WithdrawalModal(Modal):
             
             await interaction.channel.send(content=f"<@{seller_id}>", embed=em, view=view)
             
-            # Update user stats
+            
             try:
                 update_user_stats(str(seller_id), usd_amount)
             except:
                 pass
             
             
-            # [ENGAGEMENT] Inject Public Log
+            
             await notification_service.post_public_log(interaction.guild, em)
 
-            # [LOGGING]
+            
             audit_service.log_action(
                 action="DEAL_WITHDRAWN",
                 user_id=seller_id,
@@ -8278,7 +8216,7 @@ class WithdrawalModal(Modal):
                 details=f"Amount: {usd_amount} USD, TX: {main_tx}"
             )
 
-            # [ACHIEVEMENTS] Check if seller unlocked anything
+            
             try:
                 seller_user = interaction.guild.get_member(int(seller_id)) or await bot.fetch_user(int(seller_id))
                 if seller_user:
@@ -8288,7 +8226,7 @@ class WithdrawalModal(Modal):
 
             await send_transcript(interaction.channel, seller_id, buyer_id, txid=main_tx)
             
-            # Mark as finalized for 100s close
+            
             deals = load_all_data()
             if self.deal_id in deals:
                 deals[self.deal_id]['status'] = 'released'
@@ -8296,7 +8234,7 @@ class WithdrawalModal(Modal):
                 save_all_data(deals)
             
             await asyncio.sleep(100)
-            # Sweep Dust
+            
             await sweep_dust_fees(self.deal_id, self.deal)
             await interaction.channel.delete()
 
@@ -8314,7 +8252,7 @@ class WithdrawalView(View):
         if not deal:
             return await interaction.response.send_message("Deal not found.", ephemeral=True)
         
-        # Verify user is the Seller (Receiver of funds)
+        
         seller_id = int(deal['seller'])
         if interaction.user.id != seller_id:
              return await interaction.response.send_message("Only the funds receiver can withdraw.", ephemeral=True)
@@ -8360,7 +8298,7 @@ class RefundModal(Modal):
             buyer_id = int(self.deal['buyer'])
             ltc_amount = self.deal.get('ltc_amount', 0)
             
-            # Show "Processing" status
+            
             process_em = discord.Embed(
                 title="Refund Processing",
                 description="*Preparing transaction...*",
@@ -8368,7 +8306,7 @@ class RefundModal(Modal):
             )
             status_msg = await interaction.channel.send(embed=process_em)
 
-            # Auto-fund gas for USDT chains
+            
             if self.currency in ['usdt_bep20', 'usdt_polygon']:
                 try:
                     await status_msg.edit(embed=discord.Embed(
@@ -8383,10 +8321,10 @@ class RefundModal(Modal):
                     await status_msg.delete()
                     return await interaction.followup.send("Failed to fund gas for refund. Please contact support.", ephemeral=True)
 
-            # [LOGGING] Gas funding happens inside send_funds_based_on_currency
+            
             tx_hash = await send_funds_based_on_currency(self.deal, address, status_msg=status_msg)
             
-            # Final Status Update
+            
             try: await status_msg.delete()
             except: pass
 
@@ -8405,7 +8343,7 @@ class RefundModal(Modal):
 
             await send_transcript(interaction.channel, seller_id, buyer_id, txid=tx_hash)
             
-            # Mark as finalized for 100s close
+            
             deals = load_all_data()
             if self.deal_id in deals:
                 deals[self.deal_id]['status'] = 'refunded'
@@ -8413,7 +8351,7 @@ class RefundModal(Modal):
                 save_all_data(deals)
             
             await asyncio.sleep(100)
-            # Sweep Dust
+            
             await sweep_dust_fees(self.deal_id, self.deal)
             await interaction.channel.delete()
 
@@ -8433,7 +8371,7 @@ class RefundView(View):
             if not deal:
                 return await interaction.response.send_message("Deal not found.", ephemeral=True)
             
-            # Verify user is the Buyer (Sender of original funds)
+            
             buyer_id = int(deal['buyer'])
             if interaction.user.id != buyer_id:
                  return await interaction.response.send_message("Only the original sender can receive the refund.", ephemeral=True)
@@ -8486,15 +8424,15 @@ class ReleaseConButton(View):
 
             
 
-        seller_id = int(deal['seller'])  # Now represents SENDER
+        seller_id = int(deal['seller'])  
 
-        buyer_id = int(deal['buyer'])  # Now represents RECEIVER
+        buyer_id = int(deal['buyer'])  
 
         currency = deal.get('currency', 'ltc')
 
 
 
-        if interaction.user.id == buyer_id:  # RECEIVER confirms release to SENDER
+        if interaction.user.id == buyer_id:  
 
             await interaction.response.defer()
 
@@ -8524,7 +8462,7 @@ class ReleaseConButton(View):
 
             em = discord.Embed(title="Release Funds", color=0x0000ff, description=f"<@{seller_id}> Please click the button below to enter your {currency_display} address and receive funds.")
             
-            # Update deal status for persistence
+            
             deals = load_all_data()
             if deal_id in deals:
                 deals[deal_id]['status'] = 'awaiting_withdrawal'
@@ -8550,9 +8488,9 @@ class ReleaseConButton(View):
 
             
 
-        seller_id = int(deal['seller'])  # Now represents SENDER
+        seller_id = int(deal['seller'])  
 
-        buyer_id = int(deal['buyer'])  # Now represents RECEIVER
+        buyer_id = int(deal['buyer'])  
 
         ltcamt = deal['ltc_amount']
 
@@ -8560,7 +8498,7 @@ class ReleaseConButton(View):
 
 
 
-        if interaction.user.id == buyer_id:  # RECEIVER cancels release
+        if interaction.user.id == buyer_id:  
 
             await interaction.response.defer()
 
@@ -8638,15 +8576,15 @@ class CancelConButton(View):
 
             
 
-        seller_id = int(deal['seller'])  # Now represents SENDER
+        seller_id = int(deal['seller'])  
 
-        buyer_id = int(deal['buyer'])  # Now represents RECEIVER
+        buyer_id = int(deal['buyer'])  
 
         currency = deal.get('currency', 'ltc')
 
 
 
-        if interaction.user.id == seller_id:  # SENDER confirms cancellation
+        if interaction.user.id == seller_id:  
             await interaction.response.defer()
             await interaction.message.edit(view=None)
             embed = discord.Embed(description=f"{interaction.user.mention} has confirmed to cancel the deal.")
@@ -8683,15 +8621,15 @@ class CancelConButton(View):
 
             
 
-        seller_id = int(deal['seller'])  # Now represents SENDER
+        seller_id = int(deal['seller'])  
 
-        buyer_id = int(deal['buyer'])  # Now represents RECEIVER
+        buyer_id = int(deal['buyer'])  
 
         ltcamt = deal['ltc_amount']
 
 
 
-        if interaction.user.id == seller_id:  # SENDER cancels (fixing the logic)
+        if interaction.user.id == seller_id:  
 
             await interaction.response.defer()
 
@@ -8717,17 +8655,17 @@ class CancelConButton(View):
 
 
 
-# =====================================================
 
-# UTILITY FUNCTIONS
 
-# =====================================================
+
+
+
 
 
 
 async def is_valid_address(address: str, currency: str) -> bool:
 
-    """Validate address based on currency"""
+    
 
     if currency == 'ltc':
 
@@ -8757,7 +8695,7 @@ async def is_valid_address(address: str, currency: str) -> bool:
 
 async def is_valid_ltc_address(address: str) -> bool:
 
-    """Validate LTC address"""
+    
 
     url = f"https://litecoinspace.org/api/address/{address}"
 
@@ -8779,10 +8717,10 @@ async def is_valid_ltc_address(address: str) -> bool:
 
 
 async def get_evm_nonce_parallel(address, currency):
-    """Fetch current nonce from multiple RPCs for robustness."""
+    
     from web3 import AsyncWeb3, AsyncHTTPProvider
     
-    # Map currency to correct RPC list
+    
     rpc_urls = []
     if currency == 'usdt_polygon':
         rpc_urls = config.POLYGON_RPC_URLS
@@ -8810,17 +8748,14 @@ async def get_evm_nonce_parallel(address, currency):
     return 0
 
 
-# REDUNDANT LOCAL DEFINITION REMOVED - NOW USING STANDARDIZED VERSION IN utils.confirmation_utils
-# async def get_evm_confirmations(tx_hash, rpc_urls=None):
-#    ...
+
+
+
 
 
 
 async def get_solana_confirmations(tx_hash, rpc_urls=None):
-    """
-    Robust parallel Solana confirmation checker.
-    Returns 2 if finalized, 1 if confirmed, 0 otherwise. Checks all RPCs in parallel.
-    """
+    
     if not tx_hash: return 0
     from solana.rpc.async_api import AsyncClient
     
@@ -8848,7 +8783,7 @@ async def get_solana_confirmations(tx_hash, rpc_urls=None):
 
 async def generate_qr_bytes(text):
 
-    """Generate QR code bytes"""
+    
 
     try:
 
@@ -8888,11 +8823,11 @@ async def generate_qr_bytes(text):
 
 
 
-# =====================================================
 
-# BOT COMMANDS
 
-# =====================================================
+
+
+
 
 
 
@@ -9026,7 +8961,7 @@ async def check_txid_cmd(interaction: discord.Interaction, tx_signature: str):
 
     try:
 
-        # For ETH transactions, we need to use web3 to get details
+        
 
         tx_details = None
 
@@ -9068,7 +9003,7 @@ async def check_txid_cmd(interaction: discord.Interaction, tx_signature: str):
 
 
 
-        # Extract basic info
+        
 
         block_number = tx_details.blockNumber
 
@@ -9080,11 +9015,11 @@ async def check_txid_cmd(interaction: discord.Interaction, tx_signature: str):
 
         gas_used = tx_details.gas
 
-        gas_price = tx_details.gasPrice / (10 ** 9)  # Convert to Gwei
+        gas_price = tx_details.gasPrice / (10 ** 9)  
 
 
 
-        # Get block timestamp
+        
 
         block_timestamp = None
 
@@ -9180,9 +9115,9 @@ async def list_transactions_cmd(interaction: discord.Interaction, address: str):
 
     try:
 
-        # For ETH, we'll get recent transactions from Etherscan-like API
+        
 
-        # Note: This is a simplified version - you might want to use a proper ETH block explorer API
+        
 
         embed = discord.Embed(
 
@@ -9194,7 +9129,7 @@ async def list_transactions_cmd(interaction: discord.Interaction, address: str):
 
 
 
-        # Get current balance
+        
 
         balance = await get_eth_balance_parallel(address)
 
@@ -9241,7 +9176,7 @@ async def list_transactions_cmd(interaction: discord.Interaction, address: str):
 @bot.tree.command(name="stats", description="Check deal statistics for yourself or another user.")
 @app_commands.describe(user="The user to check (optional, defaults to you)")
 async def stats_cmd(interaction: discord.Interaction, user: discord.Member = None):
-    await interaction.response.defer() # Not ephemeral, so others can see the flex
+    await interaction.response.defer() 
     
     target_user = user or interaction.user
     stats = get_single_user_stats(target_user.id)
@@ -9249,13 +9184,13 @@ async def stats_cmd(interaction: discord.Interaction, user: discord.Member = Non
     deals = stats.get("deals", 0)
     volume = stats.get("volume", 0.0)
     
-    # "Professional" Look
+    
     embed = discord.Embed(
         description=f"### {target_user.mention}\n\n**Deals completed:**\n{deals}\n\n**Total USD Value:**\n${volume:,.2f}",
-        color=0x2ECC71 # Emerald Green
+        color=0x2ECC71 
     )
     
-    # Avatar on the right (thumbnail)
+    
     if target_user.avatar:
         embed.set_thumbnail(url=target_user.avatar.url)
     
@@ -9271,7 +9206,7 @@ async def force_cancel(interaction: discord.Interaction, deal_id: str = None):
         await interaction.followup.send("You are not authorized.", ephemeral=True)
         return
 
-    # Auto-sync deal_id from channel if not provided
+    
     if not deal_id:
         detected_did, detected_deal = get_deal_by_channel(interaction.channel_id)
         if detected_did:
@@ -9287,7 +9222,7 @@ async def force_cancel(interaction: discord.Interaction, deal_id: str = None):
         await interaction.followup.send(f"Deal `{deal_id}` not found.", ephemeral=True)
         return
 
-    # Strict Auto-Targeting: Always target the Buyer (Sender) for refund
+    
     buyer_id = int(deal.get("buyer", 0) or 0)
     if buyer_id:
         try:
@@ -9373,7 +9308,7 @@ async def force_release(interaction: discord.Interaction, deal_id: str = None):
         await interaction.followup.send("You are not authorized.", ephemeral=True)
         return
 
-    # Auto-sync deal_id from channel if not provided
+    
     if not deal_id:
         detected_did, detected_deal = get_deal_by_channel(interaction.channel_id)
         if detected_did:
@@ -9389,7 +9324,7 @@ async def force_release(interaction: discord.Interaction, deal_id: str = None):
         await interaction.followup.send(f"Deal `{deal_id}` not found.", ephemeral=True)
         return
 
-    # Strict Auto-Targeting: Always target the Seller (Receiver) for release
+    
     seller_id = int(deal.get("seller", 0) or 0)
     if seller_id:
         try:
@@ -9504,7 +9439,7 @@ async def mod_lock(interaction: discord.Interaction, deal_id: str = None):
 async def mod_unlock(interaction: discord.Interaction, deal_id: str = None):
     await interaction.response.defer(ephemeral=True)
     
-    # Allow Admins or Executive Role
+    
     is_admin = interaction.user.guild_permissions.administrator
     has_role = False
     if EXECUTIVE_ROLE_ID:
@@ -9539,10 +9474,7 @@ async def mod_unlock(interaction: discord.Interaction, deal_id: str = None):
 
 
 async def update_embeds_on_change(channel, deal):
-    """
-    Scans the channel for relevant embeds and updates them with new deal participants.
-    Targets: "User Selection", "User Confirmation", "RainyDay Auto MiddleMan System"
-    """
+    
     try:
         buyer_id = deal.get("buyer")
         seller_id = deal.get("seller")
@@ -9554,7 +9486,7 @@ async def update_embeds_on_change(channel, deal):
             if message.author.id == bot.user.id and message.embeds:
                 embed = message.embeds[0]
                 
-                # 1. Update "User Selection"
+                
                 if embed.title == "User Selection":
                     new_desc = (
                         f"**Sender**\n{buyer_display}\n\n"
@@ -9565,7 +9497,7 @@ async def update_embeds_on_change(channel, deal):
                     if embed.author: new_embed.set_author(name=embed.author.name, icon_url=embed.author.icon_url)
                     await message.edit(embed=new_embed)
                     
-                # 2. Update "User Confirmation"
+                
                 elif embed.title == "User Confirmation":
                     new_embed = embed.copy()
                     new_embed.clear_fields()
@@ -9573,9 +9505,9 @@ async def update_embeds_on_change(channel, deal):
                     new_embed.add_field(name="Receiver", value=seller_display, inline=False)
                     await message.edit(embed=new_embed)
                     
-                # 3. Update "RainyDay Auto MiddleMan System"
+                
                 elif embed.title == "RainyDay Auto MiddleMan System":
-                    # Reconstruct description to be safe
+                    
                     new_desc = (
                         "### 🛡️ Secure Transaction Protocol\n"
                         "• This channel is monitored by our automated escrow system.\n"
@@ -9591,7 +9523,7 @@ async def update_embeds_on_change(channel, deal):
                     if embed.author: new_embed.set_author(name=embed.author.name, icon_url=embed.author.icon_url)
                     if embed.footer: new_embed.set_footer(text=embed.footer.text, icon_url=embed.footer.icon_url)
                     
-                    # Add back fields (Warning Note)
+                    
                     if embed.fields:
                          for f in embed.fields:
                              new_embed.add_field(name=f.name, value=f.value, inline=f.inline)
@@ -9612,7 +9544,7 @@ async def change_buyer_cmd(interaction: discord.Interaction, user: discord.Membe
     if interaction.user.id not in OWNER_IDS:
         return await interaction.followup.send("You are not authorized.", ephemeral=True)
 
-    # Resolve Deal
+    
     if not deal_id:
         detected_did, detected_deal = get_deal_by_channel(interaction.channel_id)
         if detected_did:
@@ -9626,18 +9558,18 @@ async def change_buyer_cmd(interaction: discord.Interaction, user: discord.Membe
     if not deal:
         return await interaction.followup.send(f"Deal `{deal_id}` not found.", ephemeral=True)
 
-    # 1. Handle Permissions
+    
     channel_id = deal.get("channel_id")
     if channel_id:
         channel = bot.get_channel(int(channel_id))
         if channel:
-            # Remove OLD buyer
+            
             old_buyer_id = deal.get("buyer")
             if old_buyer_id and old_buyer_id != "None":
                 try:
                     old_member = await bot.fetch_user(int(old_buyer_id))
-                    # Note: We can't remove permissions for a User object if they aren't in guild, 
-                    # but we try to get Member from guild if possible.
+                    
+                    
                     guild = interaction.guild
                     member_obj = guild.get_member(int(old_buyer_id))
                     if member_obj:
@@ -9645,15 +9577,15 @@ async def change_buyer_cmd(interaction: discord.Interaction, user: discord.Membe
                 except Exception as e:
                     print(f"Failed to remove permissions for old buyer: {e}")
 
-            # Add NEW buyer
+            
             await channel.set_permissions(user, read_messages=True, send_messages=True)
             await channel.send(f"🔄 **Update:** {user.mention} is now the **Sender (Buyer)**.")
 
-    # 2. Update Database
+    
     deal["buyer"] = str(user.id)
     update_deal(deal.get("channel_id", interaction.channel_id), deal)
     
-    # 3. Update Embeds (Visual Sync)
+    
     if channel:
         await update_embeds_on_change(channel, deal)
 
@@ -9669,7 +9601,7 @@ async def change_seller_cmd(interaction: discord.Interaction, user: discord.Memb
     if interaction.user.id not in OWNER_IDS:
         return await interaction.followup.send("You are not authorized.", ephemeral=True)
 
-    # Resolve Deal
+    
     if not deal_id:
         detected_did, detected_deal = get_deal_by_channel(interaction.channel_id)
         if detected_did:
@@ -9683,12 +9615,12 @@ async def change_seller_cmd(interaction: discord.Interaction, user: discord.Memb
     if not deal:
         return await interaction.followup.send(f"Deal `{deal_id}` not found.", ephemeral=True)
 
-    # 1. Handle Permissions
+    
     channel_id = deal.get("channel_id")
     if channel_id:
         channel = bot.get_channel(int(channel_id))
         if channel:
-            # Remove OLD seller
+            
             old_seller_id = deal.get("seller")
             if old_seller_id and old_seller_id != "None":
                 try:
@@ -9699,15 +9631,15 @@ async def change_seller_cmd(interaction: discord.Interaction, user: discord.Memb
                 except Exception as e:
                     print(f"Failed to remove permissions for old seller: {e}")
 
-            # Add NEW seller
+            
             await channel.set_permissions(user, read_messages=True, send_messages=True)
             await channel.send(f"🔄 **Update:** {user.mention} is now the **Receiver (Seller)**.")
 
-    # 2. Update Database
+    
     deal["seller"] = str(user.id)
     update_deal(deal.get("channel_id", interaction.channel_id), deal)
     
-    # 3. Update Embeds (Visual Sync)
+    
     if channel:
         await update_embeds_on_change(channel, deal)
 
@@ -9834,11 +9766,11 @@ async def remove_user_cmd(interaction: discord.Interaction, user: discord.User):
 
 
 
-# =====================================================
 
-# EXISTING COMMANDS (PRESERVED)
 
-# =====================================================
+
+
+
 
 
 
@@ -10103,18 +10035,18 @@ async def recover_cmd(interaction: discord.Interaction, deal_id: str):
     if not guild:
         return await interaction.followup.send("Command must be used in a server.", ephemeral=True)
         
-    # Recreate Channel
+    
     category = None
     if CATEGORY_ID_1: category = guild.get_channel(int(CATEGORY_ID_1))
     if not category and CATEGORY_ID_2: category = guild.get_channel(int(CATEGORY_ID_2))
     
-    # Permissions
+    
     overwrites = {
         guild.default_role: discord.PermissionOverwrite(read_messages=False),
         interaction.user: discord.PermissionOverwrite(read_messages=True, send_messages=True)
     }
     
-    # Add Buyer/Seller
+    
     buyer_id = int(deal_info.get('buyer', 0))
     seller_id = int(deal_info.get('seller', 0))
     
@@ -10128,7 +10060,7 @@ async def recover_cmd(interaction: discord.Interaction, deal_id: str):
         channel_name = f"recovered-{deal_id}"
         new_channel = await guild.create_text_channel(name=channel_name, category=category, overwrites=overwrites)
         
-        # Update DB
+        
         deal_info['channel_id'] = new_channel.id
         data = load_all_data()
         data[deal_id] = deal_info
@@ -10136,11 +10068,11 @@ async def recover_cmd(interaction: discord.Interaction, deal_id: str):
         
         await interaction.followup.send(f"Recovered channel: {new_channel.mention}", ephemeral=True)
         
-        # =====================================================
-        # RESTORE CONTEXT (SIMULATED HISTORY)
-        # =====================================================
         
-        # 1. Consolidated Premium Welcome Embed
+        
+        
+        
+        
         logo_url = "https://cdn.discordapp.com/attachments/1383487913186169032/1384932699717898300/Untitled-2.png"
         
         embed = discord.Embed(
@@ -10180,17 +10112,17 @@ async def recover_cmd(interaction: discord.Interaction, deal_id: str):
         try: await new_channel.send(content=f"<@{buyer_id}> <@{seller_id}>", embed=embed)
         except: await new_channel.send(embed=embed)
 
-        # 3. Simulate User Confirmation
+        
         confirm_embed = discord.Embed(title="User Confirmation", color=0x00ff00)
         confirm_embed.add_field(name="Sender", value=f"<@{buyer_id}>", inline=True)
         confirm_embed.add_field(name="Receiver", value=f"<@{seller_id}>", inline=True)
         confirm_embed.add_field(name="Status", value="✅ Confirmed by both", inline=False)
         await new_channel.send(embed=confirm_embed)
 
-        # 4. Product Details (RESTORED)
+        
         prod_embed = discord.Embed(title="Product Details", color=0x0000ff)
         
-        # Safe get with fallbacks
+        
         p_name = deal_info.get("product_name", "N/A - Legacy Deal")
         p_tos = deal_info.get("product_tos", "N/A - Legacy Deal")
 
@@ -10198,9 +10130,9 @@ async def recover_cmd(interaction: discord.Interaction, deal_id: str):
         prod_embed.add_field(name="ToS and Warranty", value=f"```\n{p_tos}\n```", inline=False)
         await new_channel.send(embed=prod_embed)
 
-        # =====================================================
-        # RESTORE ACTIVE STATE (FULL PAYMENT PANEL)
-        # =====================================================
+        
+        
+        
         status = deal_info.get('status', 'started')
         
         if status == 'awaiting_withdrawal':
@@ -10208,21 +10140,21 @@ async def recover_cmd(interaction: discord.Interaction, deal_id: str):
             await new_channel.send(embed=em, view=WithdrawalView(deal_id))
             
         elif status == 'started':
-            # Check if we have an address already
+            
             existing_address = deal_info.get('address')
             crypto_amount = deal_info.get('ltc_amount', 0)
             currency = deal_info.get('currency', 'ltc')
             usd_amount = deal_info.get('amount', 0)
             
-            # Check if deal is older than 1 hour AND has an address
+            
             deal_start = deal_info.get('payment_start_time', deal_info.get('start_time', 0))
             current_time = time.time()
             deal_age_seconds = current_time - deal_start
             
-            # If deal is older than 1 hour, check if address was paid
+            
             need_new_address = False
             if existing_address and deal_age_seconds > 3600:
-                # Check if the old address has any balance
+                
                 try:
                     if currency == 'ltc':
                         balance = await get_ltc_confirmed_balance(existing_address)
@@ -10248,13 +10180,13 @@ async def recover_cmd(interaction: discord.Interaction, deal_id: str):
                     print(f"[Recovery] Balance check error: {e}")
                     need_new_address = True
             
-            # Generate new address if needed
+            
             if need_new_address or not existing_address:
                 if crypto_amount > 0:
                     wallet = await generate_wallet_for_currency(deal_id, currency)
                     existing_address = wallet['address']
                     
-                    # Update deal with new address
+                    
                     deal_info['address'] = existing_address
                     deal_info['private_key'] = wallet['private_key']
                     deal_info['payment_start_time'] = time.time()
@@ -10263,11 +10195,11 @@ async def recover_cmd(interaction: discord.Interaction, deal_id: str):
                     data[deal_id] = deal_info
                     save_all_data(data)
                 else:
-                    # No amount set, show currency selection
+                    
                     await new_channel.send(embed=discord.Embed(title="Restored Session", description="Please select currency."), view=CurrencySelectView())
                     return
             
-            # Display payment panel like the original
+            
             currency_display = {
                 'ltc': 'Litecoin',
                 'usdt_bep20': 'USDT (BEP20)',
@@ -10276,11 +10208,11 @@ async def recover_cmd(interaction: discord.Interaction, deal_id: str):
                 'ethereum': 'Ethereum'
             }.get(currency, 'Crypto')
 
-            # Confirmation messages
+            
             await new_channel.send(f"<@{seller_id}> (Seller) has confirmed.")
             await new_channel.send(f"<@{buyer_id}> (Buyer) has confirmed.")
 
-            # Amount confirmation
+            
             confirm_amt = discord.Embed(
                 title="Confirm Amount",
                 description=f"Are you certain that we are expected to receive `{usd_amount}$` in **{currency_display.upper()}**?",
@@ -10289,7 +10221,7 @@ async def recover_cmd(interaction: discord.Interaction, deal_id: str):
             confirm_amt.set_thumbnail(url="https://cdn.discordapp.com/attachments/1438896774243942432/1446517323069521992/discotools-xyz-icon_1.png")
             await new_channel.send(embed=confirm_amt)
 
-            # Payment panel
+            
             embed = discord.Embed(
                 title="RainyDay MM",
                 description=(
@@ -10305,15 +10237,15 @@ async def recover_cmd(interaction: discord.Interaction, deal_id: str):
 
             await new_channel.send(content=f"<@{buyer_id}>", embed=embed, view=AddyButtons())
 
-            # Timer note
+            
             await new_channel.send("# Note - If you don't send the amount within 20 minutes, the deal will be cancelled.")
 
-            # Waiting embed
+            
             em = discord.Embed()
             em.set_author(name="Waiting for transaction...")
             msg = await new_channel.send(embed=em)
 
-            # Start payment monitoring
+            
             bot.loop.create_task(
                 check_payment_multicurrency(existing_address, new_channel, crypto_amount, deal_info, msg)
             )
@@ -10329,7 +10261,7 @@ async def recover_cmd(interaction: discord.Interaction, deal_id: str):
 class StartDealView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
-        # Using the existing CurrencySelectMenu for the dropdown
+        
         self.add_item(CurrencySelectMenu())
 
 
@@ -10374,7 +10306,7 @@ async def send_panel(ctx):
         color=0x0000ff
     )
     
-    # Premium Placement: Thumbnail and Footer
+    
     embed.set_thumbnail(url=logo_url)
     embed.set_footer(text="RainyDay MM | Safe & Secure Trading", icon_url=logo_url)
     
@@ -10382,9 +10314,9 @@ async def send_panel(ctx):
 
 @tasks.loop(minutes=10)
 async def vc_stats_loop():
-    """Update multiple stats voice channels"""
+    
     try:
-        # Load stats channel IDs
+        
         stats_channels = load_stats_channels()
         if not stats_channels:
             return
@@ -10392,15 +10324,15 @@ async def vc_stats_loop():
         data = load_all_data()
         user_stats = load_user_stats()
         
-        # Calculate stats
-        # Total volume is sum of all user volumes / 2 (since both buyer and seller get credit)
+        
+        
         raw_volume = sum(u.get('volume', 0.0) for u in user_stats.values())
         total_volume = raw_volume / 2
         total_deals = sum(u.get('deals', 0) for u in user_stats.values())
         active_deals = len([d for d in data.values() if d.get('status') in ['started', 'awaiting_withdrawal']])
         total_users = len(user_stats)
         
-        # Update each channel
+        
         updates = [
             ('volume_channel', f"💰 Volume: ${total_volume:,.2f}"),
             ('deals_channel', f"📊 Total Deals: {total_deals}"),
@@ -10423,13 +10355,13 @@ async def vc_stats_loop():
 
 @tasks.loop(seconds=60)
 async def check_idle_deals():
-    """Unified auto-close logic: 1h inactivity reset on msg/invoice, 100s close on finalize."""
+    
     try:
         data = load_all_data()
         current_time = time.time()
         
         for deal_id, deal in list(data.items()):
-            # 1. SKIP if funds are detected/paid (Never auto-close funded deals)
+            
             if deal.get('paid') or deal.get('status') in ['escrowed', 'awaiting_withdrawal', 'awaiting_confirmation']:
                 continue
 
@@ -10439,7 +10371,7 @@ async def check_idle_deals():
                 
             channel = bot.get_channel(int(channel_id))
             if not channel:
-                # Channel deleted manually? Clean up data.
+                
                 del data[deal_id]
                 save_all_data(data)
                 continue
@@ -10448,7 +10380,7 @@ async def check_idle_deals():
             elapsed = current_time - last_act
             status = deal.get("status")
 
-            # 2. FINALIZED CLOSE (100 seconds)
+            
             if status in ['released', 'refunded', 'cancelled']:
                 if elapsed > 100:
                     try:
@@ -10461,9 +10393,9 @@ async def check_idle_deals():
                         print(f"[AutoClose] Error closing finalized {deal_id}: {e}")
                 continue
 
-            # 3. INACTIVITY CLOSE (1 hour = 3600 seconds)
-            # Skip if payment detection is active? User said "if no activity in 1 hour then it will autoclose"
-            # "after payment is detected it will never autoclose" -> we already skipped 'paid'/'escrowed' etc.
+            
+            
+            
             
             if elapsed > 3600:
                 try:
@@ -10482,7 +10414,7 @@ async def check_idle_deals():
                 except Exception as e:
                     print(f"[AutoClose] Error closing idle {deal_id}: {e}")
             
-            # Warning at 50 minutes (3000 seconds)
+            
             elif elapsed > 3000 and not deal.get("idle_warning_sent"):
                 try:
                     embed = discord.Embed(
@@ -10503,7 +10435,7 @@ async def check_idle_deals():
         print(f"Unified Idle Check Error: {e}")
 
 def load_stats_channels():
-    """Load stats channel IDs from JSON"""
+    
     try:
         with open('stats_channels.json', 'r') as f:
             return json.load(f)
@@ -10511,7 +10443,7 @@ def load_stats_channels():
         return {}
 
 def save_stats_channels(data):
-    """Save stats channel IDs to JSON"""
+    
     with open('stats_channels.json', 'w') as f:
         json.dump(data, f, indent=2)
 
@@ -10527,11 +10459,11 @@ async def create_stats_channels_cmd(interaction: discord.Interaction):
         return await interaction.followup.send("Must be used in a server.", ephemeral=True)
     
     try:
-        # Create a category for stats
+        
         category = await guild.create_category("📊 AutoMM Stats")
         
-        # Create 4 voice channels
-        # Set permissions so no one can join
+        
+        
         overwrites = {
             guild.default_role: discord.PermissionOverwrite(connect=False),
             guild.me: discord.PermissionOverwrite(connect=True, manage_channels=True)
@@ -10542,7 +10474,7 @@ async def create_stats_channels_cmd(interaction: discord.Interaction):
         active_ch = await guild.create_voice_channel("⚡ Active: 0", category=category, overwrites=overwrites)
         users_ch = await guild.create_voice_channel("👥 Users: 0", category=category, overwrites=overwrites)
         
-        # Save channel IDs
+        
         stats_data = {
             'volume_channel': str(vol_ch.id),
             'deals_channel': str(deals_ch.id),
@@ -10690,7 +10622,7 @@ async def refresh_deal(interaction: discord.Interaction):
     if not deal:
         return await interaction.followup.send("No deal found in this channel.", ephemeral=True)
     
-    # Update activity to prevent deletion
+    
     data = load_all_data()
     if deal_id in data:
         data[deal_id]['last_activity'] = time.time()
@@ -10699,9 +10631,9 @@ async def refresh_deal(interaction: discord.Interaction):
     status = deal.get("status")
     paid = deal.get("paid")
     
-    # CASE 1: Deal is PAID/ESCROWED but UI might be stuck
+    
     if status == 'escrowed' or paid:
-        # Cleanup old "Verifying" or existing "Confirmed" embeds to prevent duplicates
+        
         try:
             async for old_msg in channel.history(limit=20):
                 if old_msg.author.id == bot.user.id and old_msg.embeds:
@@ -10711,19 +10643,19 @@ async def refresh_deal(interaction: discord.Interaction):
                          except: pass
         except: pass
 
-        # Re-send Success Embed
+        
         currency = deal.get("currency", "ltc")
         txid = deal.get("txid", "N/A")
         amount = deal.get("amount", 0.0)
         
-        # Calculate USD value again for display
+        
         usd_val = 0.0
         try:
-            # Try to get price, handling rate limits and fallbacks
+            
             price_resp = await get_cached_price(currency)
             
             if price_resp == "RATE_LIMIT":
-                # Fallback for stablecoins if rate limited
+                
                 if any(x in currency.lower() for x in ['usdt', 'usdc', 'dai']):
                     price = 1.0
                 else:
@@ -10731,14 +10663,14 @@ async def refresh_deal(interaction: discord.Interaction):
             else:
                 price = float(price_resp)
 
-            # If price is still 0 (API failed) and it's a stablecoin, force 1.0
+            
             if price <= 0 and any(x in currency.lower() for x in ['usdt', 'usdc', 'dai']):
                 price = 1.0
                 
             usd_val = float(amount) * price
         except Exception as e:
             print(f"Price calc error: {e}")
-            # Final safety fallback for stablecoins
+            
             if any(x in currency.lower() for x in ['usdt', 'usdc']):
                  usd_val = float(amount)
             
@@ -10760,10 +10692,10 @@ async def refresh_deal(interaction: discord.Interaction):
 
         v_final = ReleaseButton(txid=txid, currency=currency)
         
-        buyer_id = deal.get("buyer") # Receiver
-        seller_id = deal.get("seller") # Sender
+        buyer_id = deal.get("buyer") 
+        seller_id = deal.get("seller") 
 
-        # Generate Handshake Banner
+        
         file_attachment = None
         try:
             buyer_user = await bot.fetch_user(int(buyer_id))
@@ -10920,8 +10852,8 @@ async def close_command(interaction: discord.Interaction):
     try:
         await interaction.response.defer(ephemeral=True)
 
-        # --- EXECUTIVE ROLE CHECK ---
-        # Allow Access if: User is OWNER OR User has Executive Role
+        
+        
         has_role = False
         if hasattr(interaction.user, "roles"):
             if EXECUTIVE_ROLE_ID in [role.id for role in interaction.user.roles]:
@@ -10936,7 +10868,7 @@ async def close_command(interaction: discord.Interaction):
 
     except Exception as e:
         print(f"Error initializing close command: {e}")
-        # Try to recover if defer failed
+        
         try:
              await interaction.response.send_message("An error occurred starting the close command.", ephemeral=True)
         except:
@@ -10944,7 +10876,7 @@ async def close_command(interaction: discord.Interaction):
         return
 
 
-    # -----------------------------
+    
 
 
 
@@ -11000,7 +10932,7 @@ async def close_command(interaction: discord.Interaction):
 
 
 
-        # Save transcript
+        
 
         if seller_id or buyer_id:
 
@@ -11020,10 +10952,10 @@ async def close_command(interaction: discord.Interaction):
 
 
 
-        # DELETE CHANNEL (This was missing)
+        
 
         try:
-            # Sweep Dust
+            
             await sweep_dust_fees(deal_id, deal)
 
             await interaction.channel.delete(reason="Ticket closed by executive.")
@@ -11040,7 +10972,7 @@ async def close_command(interaction: discord.Interaction):
 
         await interaction.followup.send("An error occurred while closing the ticket.", ephemeral=True)
 
-# ========== CONFIRMATION BUTTONS ==========
+
 
 class CloseAllConfirm(discord.ui.View):
 
@@ -11058,7 +10990,7 @@ class CloseAllConfirm(discord.ui.View):
 
 
 
-        # Only original user can confirm
+        
 
         if interaction.user.id != self.interaction.user.id:
 
@@ -11072,7 +11004,7 @@ class CloseAllConfirm(discord.ui.View):
 
 
 
-        # Load data.json for seller/buyer
+        
 
         try:
 
@@ -11090,7 +11022,7 @@ class CloseAllConfirm(discord.ui.View):
 
 
 
-        # Loop through both categories
+        
 
         for cat_id in [CATEGORY_ID_1, CATEGORY_ID_2]:
 
@@ -11110,7 +11042,7 @@ class CloseAllConfirm(discord.ui.View):
 
 
 
-                # Use real seller/buyer if exists in data.json
+                
 
                 if ch_id in all_deals:
 
@@ -11122,7 +11054,7 @@ class CloseAllConfirm(discord.ui.View):
 
                 else:
 
-                    # Not in data.json → transcript only, no logs or seller/buyer
+                    
 
                     seller_id = 0
 
@@ -11130,7 +11062,7 @@ class CloseAllConfirm(discord.ui.View):
 
 
 
-                # Save transcript no matter what
+                
 
                 try:
 
@@ -11142,7 +11074,7 @@ class CloseAllConfirm(discord.ui.View):
 
 
 
-                # Delete channel
+                
 
                 try:
 
@@ -11197,20 +11129,20 @@ async def sync_tree(ctx):
     if ctx.author.id not in OWNER_IDS:
         return
 
-    # WIPE guild-specific commands (Removes duplicates)
+    
     if ctx.guild:
         print(f"Clearing guild commands for {ctx.guild.id}...")
         bot.tree.clear_commands(guild=ctx.guild)
         await bot.tree.sync(guild=ctx.guild)
     
-    # Sync Global (Ensures only 1 global copy survives)
+    
     print("Syncing globally...")
     await bot.tree.sync()
     
     await ctx.send("✅ Duplicates removed! Global commands synced. (You may need to restart Discord to see changes)")
 
 
-# ========== MAIN /close_all COMMAND ==========
+
 
 @bot.tree.command(name="close_all", description="Owner-only: Delete ALL deal channels and save transcripts.")
 
@@ -11222,7 +11154,7 @@ async def close_all(interaction: discord.Interaction):
 
 
 
-    # OWNER CHECK
+    
 
     if interaction.user.id not in OWNER_IDS:
 
@@ -11274,7 +11206,7 @@ async def close_all(interaction: discord.Interaction):
 
 
 
-# ========== ADMIN RESCAN COMMAND ==========
+
 
 @bot.tree.command(name="admin_rescan", description="Force restart payment monitoring for a deal (Owner Only)")
 @app_commands.describe(deal_id="The deal ID to rescan")
@@ -11290,7 +11222,7 @@ async def admin_rescan(interaction: discord.Interaction, deal_id: str):
         await interaction.followup.send("Deal not found.", ephemeral=True)
         return
     
-    # Get channel
+    
     channel_id = deal.get('channel_id')
     if not channel_id:
         await interaction.followup.send("Deal has no channel.", ephemeral=True)
@@ -11301,7 +11233,7 @@ async def admin_rescan(interaction: discord.Interaction, deal_id: str):
         await interaction.followup.send("Channel not found.", ephemeral=True)
         return
     
-    # Check if deal has address and amount
+    
     address = deal.get('address')
     crypto_amount = deal.get('ltc_amount', 0)
     currency = deal.get('currency', 'ltc')
@@ -11314,7 +11246,7 @@ async def admin_rescan(interaction: discord.Interaction, deal_id: str):
         await interaction.followup.send("Deal has no expected amount.", ephemeral=True)
         return
     
-    # Start payment monitoring task silently
+    
     bot.loop.create_task(check_payment_multicurrency(address, channel, crypto_amount, deal, None))
     
     await interaction.followup.send(f"✅ Payment monitoring restarted for deal `{deal_id}`", ephemeral=True)
@@ -11356,11 +11288,11 @@ async def sync_history(interaction: discord.Interaction, limit: int = 100):
         if not embed.title or "Deal Complete" not in str(embed.title):
             continue
             
-        # Extract data from existing embed
+        
         title = embed.title
         full_name = title.replace(" Deal Complete", "")
         
-        # Get currency key from full name
+        
         curr_map = {
             'Litecoin': 'ltc', 'Tether (BSC)': 'usdt_bep20', 'Tether (Polygon)': 'usdt_polygon',
             'Solana': 'solana', 'Ethereum': 'ethereum'
@@ -11378,7 +11310,7 @@ async def sync_history(interaction: discord.Interaction, limit: int = 100):
         if c_info['icon']:
             new_embed.set_thumbnail(url=c_info['icon'])
             
-        # Parse Fields
+        
         for field in embed.fields:
             if field.name == "Amount":
                 val = field.value.replace("`", "") 
@@ -11409,7 +11341,7 @@ async def sync_history(interaction: discord.Interaction, limit: int = 100):
                 else:
                     new_embed.add_field(name="Transaction", value=field.value, inline=False)
         
-        # Update View (Buttons)
+        
         new_view = discord.ui.View()
         if message.components:
             for row in message.components:
@@ -11461,13 +11393,13 @@ async def sync(interaction: discord.Interaction):
             
         status = deal.get('status', '')
         
-        # 1. SKIP logic
+        
         if status == 'cancelled':
              continue
         
-        # 2. STATUS-BASED RESTORATION
+        
         try:
-            # --- ESCROWED / PAID ---
+            
             if status == 'escrowed' or deal.get('paid'):
                 
                 has_correct_ui = False
@@ -11513,30 +11445,30 @@ async def sync(interaction: discord.Interaction):
                     )
                     synced_count += 1
             
-            # --- PENDING ---
+            
             elif status == 'pending':
-                 # Resend Payment Instructions if missing or outdated
-                 # 1. Check for existing
+                 
+                 
                  has_payment_ui = False
                  async for msg in channel.history(limit=10):
                     if msg.author.id == bot.user.id and msg.embeds:
                         emp = msg.embeds[0]
                         if "Payment Required" in str(emp.title) or "Waiting for payment" in str(emp.footer.text):
                             has_payment_ui = True
-                            # Optional: Delete it to resend fresh? 
-                            # User said "update embeds too", so let's delete old and send fresh.
+                            
+                            
                             try: await msg.delete()
                             except: pass
                             has_payment_ui = False
                             break
                  
                  if not has_payment_ui:
-                     # Resend Payment UI
+                     
                      currency = deal.get('currency', 'ltc')
                      c_info = get_currency_info(currency)
                      c_name = c_info['name']
                      expected_amount = deal.get('ltc_amount', 0)
-                     if expected_amount == 0: continue # Skip invalid
+                     if expected_amount == 0: continue 
                      
                      address = deal.get('address')
                      
@@ -11563,11 +11495,11 @@ async def sync(interaction: discord.Interaction):
     await interaction.followup.send(f"✅ Synced **{synced_count}** active deals. ({errors} errors)", ephemeral=True)
 
 
-# =====================================================
 
-# BOT EVENTS
 
-# =====================================================
+
+
+
 
 
 
@@ -11575,9 +11507,9 @@ async def sync(interaction: discord.Interaction):
 
 async def on_ready():
     print(f"Logged in as {bot.user}")
-    await get_session() # Pre-initialize high-speed session
+    await get_session() 
 
-    # Load Cogs
+    
     initial_extensions = []
     for filename in os.listdir('./cogs'):
         if filename.endswith('.py'):
@@ -11590,7 +11522,7 @@ async def on_ready():
         except Exception as e:
             print(f"Failed to load extension {extension}: {e}")
 
-    # Register Persistent Views
+    
     bot.add_view(ReleaseButton())
     bot.add_view(ReleaseConButton())
     bot.add_view(CancelConButton())
@@ -11601,15 +11533,15 @@ async def on_ready():
     synced = await bot.tree.sync()
     print(f"[Startup] Global command tree synced ({len(synced)} commands).")
     
-    # Start VC Stats Loop
+    
     if not vc_stats_loop.is_running():
         vc_stats_loop.start()
         
-    # Start Idle Check Loop (New)
+    
     if not check_idle_deals.is_running():
         check_idle_deals.start()
 
-    # ========== STARTUP RECOVERY: Resume payment monitoring ==========
+    
     print("[Startup Recovery] Checking for pending payment deals...")
     data = load_all_data()
     print(f"[Startup Recovery] Found {len(data)} total deals in database")
@@ -11618,32 +11550,32 @@ async def on_ready():
     
     for deal_id, deal_info in data.items():
         try:
-            # Skip deals without address (not in payment phase)
+            
             address = deal_info.get('address')
             if not address:
                 continue
             
-            # Skip completed deals (those with completed/cancelled status markers can be added)
-            # For now, check if deal has payment_start_time and is within 1 hour
+            
+            
             payment_start = deal_info.get('payment_start_time', deal_info.get('start_time', 0))
             deal_age = current_time - payment_start
             
-            # Skip if deal is older than 1 hour (expired)
+            
             if deal_age > 3600:
                 continue
             
-            # Get expected amount
-            # FIX: Priority use expected_crypto_amount which is the original target
+            
+            
             crypto_amount = deal_info.get('expected_crypto_amount', deal_info.get('ltc_amount', 0))
             if crypto_amount <= 0:
                 continue
             
-            # Get channel
+            
             channel_id = deal_info.get('channel_id')
             if not channel_id:
                 continue
             
-            # Try to get channel
+            
             channel = None
             for guild in bot.guilds:
                 channel = guild.get_channel(int(channel_id))
@@ -11653,7 +11585,7 @@ async def on_ready():
             if not channel:
                 continue
             
-            # Resume payment monitoring for this deal (Silent, non-blocking)
+            
             if not hasattr(bot, 'active_monitors'): bot.active_monitors = set()
             if address not in bot.active_monitors:
                 print(f"[Startup Recovery] Resuming payment monitoring for deal {deal_id[:16]}...")
@@ -11670,9 +11602,7 @@ async def on_ready():
 
 @bot.event
 async def on_member_join(member):
-    """
-    Restore access to active deals if a user rejoins.
-    """
+    
     guild = member.guild
     data = load_all_data()
     
@@ -11680,7 +11610,7 @@ async def on_member_join(member):
     seen_channels = set()
     
     for deal_id, info in data.items():
-        # Check if user is buyer or seller
+        
         buyer_id = str(info.get('buyer', ''))
         seller_id = str(info.get('seller', ''))
         
@@ -11741,7 +11671,7 @@ async def on_member_join(member):
 
 
 
-    # Footer icon = your logo (thumbnail removed)
+    
 
     embed.set_footer(
 
@@ -11753,10 +11683,10 @@ async def on_member_join(member):
 
 
 
-    #embed = discord.Embed(description="# RainyDay Auto Middleman\n\n**What is Auto Middleman?**\nRainyDay Auto Middleman is an automated, secure escrow system designed to hold cryptocurrency on your behalf. It streamlines transactions, saves time, and ensures safer dealings between buyers and sellers.\n\n**Key Features:**\n- Supports LTC, USDT (BEP20), USDT (Polygon), Solana (SOL), and Ethereum (ETH)\n- Fully automated and available 24/7\n- Fast, efficient, and secure\n- Zero fees", color=0x0000ff)
-    #embed.set_thumbnail(url="https://cdn.discordapp.com/attachments/1383487913186169032/1384932699717898300/Untitled-2.png?ex=68543a96&is=6852e916&hm=3f5566d93ca1ba539950f47e4ea4fbcf1c4b2e6873af9d97424656d867830d7a&")
+    
+    
 
-    #embed.set_footer(text=f"RainyDay MM | {date}, {time}")
+    
 
     print("Bot is ready!")
 
@@ -11765,9 +11695,9 @@ async def on_member_join(member):
         channel = bot.get_channel(CHANNEL_ID)
 
         if channel:
-            # Disabled auto-purge/resend to prevent deleting the existing Ticket Panel
-            # await channel.purge()
-            # await channel.send(embed=embed, view=TicketView())
+            
+            
+            
             pass
 
     except Exception as e:
@@ -11776,20 +11706,20 @@ async def on_member_join(member):
 
 
 
-    # ======================================================
-    # 🔄 RESTORE VIEWS FOR PERSISTENCE (Cleaned up)
-    # ======================================================
+    
+    
+    
     print("Restoring persistent views...")
-    # NOTE: Individual deal view restoration is NO LONGER NEEDED 
-    # because all views are now STATELESS and registered globally below.
-    # The previous loop causing conflicts has been removed.
+    
+    
+    
 
 
 
 
     
 
-    # Add all views
+    
 
     bot.add_view(StartDealView())
 
@@ -11834,7 +11764,7 @@ async def on_message(message):
     if message.author.bot:
         return
 
-    # Reset auto-close timer on activity
+    
     did, dinfo = get_deal_by_channel(message.channel.id)
     if dinfo:
         dinfo['last_activity'] = time.time()
@@ -11862,21 +11792,21 @@ async def on_message(message):
 
         if not await is_valid_address(addr, currency):
 
-            #await message.channel.send(f"Invalid {currency.upper()} address. Try again.")
+            
 
             return
 
 
 
         try:
-            # Use fee deduction only for release, not for cancel/refund
+            
             if action_type == "release":
                 result = await send_funds_with_fee(deal, addr)
                 txid = result['main_tx']
                 fee_tx = result.get('fee_tx')
                 fee_amount = result.get('fee_amount', 0)
             else:
-                # Cancel/refund - no fees
+                
                 txid = await send_funds_based_on_currency(deal, addr)
                 fee_tx = None
                 fee_amount = 0
@@ -11945,23 +11875,23 @@ async def on_message(message):
 
     await bot.process_commands(message)
 
-# =====================================================
 
-# EXISTING FUNCTIONS (PRESERVED)
 
-# =====================================================
+
+
+
 
 
 
 def get_explorer_url(currency, txid):
-    """Generate blockchain explorer link based on currency."""
+    
     if not txid or str(txid).lower() == "none" or str(txid).lower() == "manual":
         return None
         
     c = currency.lower()
     txid_str = str(txid)
     
-    # Helper to ensure 0x prefix for EVM
+    
     def ensure_0x(h):
         return f"0x{h}" if not h.startswith("0x") else h
 
@@ -11980,7 +11910,7 @@ def get_explorer_url(currency, txid):
 
 async def send_transcript(channel, seller_id, buyer_id, txid: str | None = None):
 
-    """Existing transcript function"""
+    
 
     try:
 
@@ -12119,17 +12049,17 @@ async def send_transcript(channel, seller_id, buyer_id, txid: str | None = None)
         )
 
         if log_channel:
-            # 1. Gather Data (from deal dict if available)
+            
             amount = "Unknown"
             currency = "Unknown"
             if deal and isinstance(deal, dict):
                 amount = deal.get("amount", "0.0")
                 currency = deal.get("currency", "Unknown")
             
-            # 2. Build Explorer Link
+            
             explorer_url = get_explorer_url(currency, txid)
             
-            # 3. Create Custom Embed (Matching Image)
+            
             is_completed = txid is not None and str(txid).lower() != "none" and len(str(txid)) > 5
             
             log_title = "Transaction Completed" if is_completed else "Ticket Closed"
@@ -12144,11 +12074,11 @@ async def send_transcript(channel, seller_id, buyer_id, txid: str | None = None)
             if c_info['icon']:
                 log_embed.set_thumbnail(url=c_info['icon'])
             
-            # Match Image Fields
+            
             log_embed.add_field(name="Deal ID", value=f"`{deal_id_str}`", inline=False)
             log_embed.add_field(name="Type", value=f"`{c_info['name']}`", inline=False)
             
-            # Sender & Receiver (Buyer & Seller) using rich format
+            
             buyer_display = get_rich_user_display(channel.guild, buyer_id)
             seller_display = get_rich_user_display(channel.guild, seller_id)
             
@@ -12161,21 +12091,21 @@ async def send_transcript(channel, seller_id, buyer_id, txid: str | None = None)
             if is_completed:
                 amt_crypto = deal.get("ltc_amount", "0.0") if deal else "0.0"
                 c_tag = currency.upper().replace("_", " ") if currency else "MM"
-                # Formatting: [`amt_crypto`] CURRENCY (`$amount` USD)
+                
                 log_embed.add_field(name="Amount", value=f"`{amt_crypto}` {c_tag} (`${amount}` USD)", inline=False)
                 log_embed.add_field(name="Transaction ID", value=f"`{txid}`", inline=False)
 
-            # Set Footer with Timestamp
+            
             log_embed.set_footer(text=f"Today at {datetime.datetime.now().strftime('%I:%M %p')}")
             
-            # 4. Create View with Button
+            
             view = discord.ui.View()
             if is_completed and explorer_url:
                 view.add_item(discord.ui.Button(label="View on Blockchain", url=explorer_url))
             else:
                 view.add_item(discord.ui.Button(label="No Link Available", style=discord.ButtonStyle.grey, disabled=True))
 
-            # Send full details to log_channel (with IDs and File)
+            
             await log_channel.send(
                 embed=log_embed, 
                 view=view,
@@ -12183,7 +12113,7 @@ async def send_transcript(channel, seller_id, buyer_id, txid: str | None = None)
             )
 
         if is_completed and history_channel and history_channel.id not in (channel.id, getattr(log_channel, "id", None)):
-            # PROOF VERSION FOR HISTORY (Enhanced Anonymous Design)
+            
             currency_icons = {
                 'ltc': 'https://cryptologos.cc/logos/litecoin-ltc-logo.png',
                 'sol': 'https://cryptologos.cc/logos/solana-sol-logo.png',
@@ -12210,14 +12140,14 @@ async def send_transcript(channel, seller_id, buyer_id, txid: str | None = None)
                 color=0x00ff00
             )
             
-            # Thumbnail
+            
             raw_curr_key = str(raw_curr).lower()
             icon_url = currency_icons.get(raw_curr_key, "https://cdn.discordapp.com/attachments/1438896774243942432/1446517314433454342/discotools-xyz-icon.png")
             
             if icon_url:
                 history_embed.set_thumbnail(url=icon_url)
             
-            # Formatted Amount: [`crypto_amount`] `CURRENCY` (`$USD_amount` USD)
+            
             crypto_val = deal.get("ltc_amount", "0.0") if deal else "0.0"
             try:
                 amt_str = f"`{float(crypto_val):.8f}` {c_tag} (`${float(amount):.2f}` USD)"
@@ -12226,11 +12156,11 @@ async def send_transcript(channel, seller_id, buyer_id, txid: str | None = None)
                 
             history_embed.add_field(name="Amount", value=amt_str, inline=False)
             
-            # Participants (Anonymous)
+            
             history_embed.add_field(name="Sender", value="`Anonymous`", inline=True)
             history_embed.add_field(name="Receiver", value="`Anonymous`", inline=True)
             
-            # Transaction: Shortened Hash + Link -> SHORT_HASH ([View Transaction](EXPLORER_LINK))
+            
             if txid:
                 s_txid = str(txid)
                 short_txid = f"{s_txid[:6]}...{s_txid[-6:]}" if len(s_txid) > 12 else s_txid
@@ -12242,7 +12172,7 @@ async def send_transcript(channel, seller_id, buyer_id, txid: str | None = None)
                 
                 history_embed.add_field(name="Transaction", value=val_str, inline=False)
             
-            # View with specific button label
+            
             h_view = discord.ui.View()
             if explorer_url:
                 btn_label = "View on Blockchain"
@@ -12271,14 +12201,14 @@ async def send_transcript(channel, seller_id, buyer_id, txid: str | None = None)
                 dm_embed_seller.add_field(name="🆔 Deal ID", value=f"`{deal_id_str}`", inline=True)
                 dm_embed_seller.add_field(name="💬 Channel", value=f"`{channel.name}`", inline=True)
                 
-                # Rich displays for roles
+                
                 dm_embed_seller.add_field(name="👤 You (Seller)", value=get_rich_user_display(channel.guild, seller_id), inline=False)
                 dm_embed_seller.add_field(name="👤 Buyer", value=get_rich_user_display(channel.guild, buyer_id), inline=False)
                 
                 if txid and str(txid).lower() != "none" and len(str(txid)) > 5:
                     dm_embed_seller.add_field(name="🔗 Transaction ID", value=f"`{txid}`", inline=False)
 
-                # View with Button
+                
                 dm_view = discord.ui.View()
                 if is_completed and explorer_url:
                     dm_view.add_item(discord.ui.Button(label="View on Blockchain", url=explorer_url))
@@ -12304,14 +12234,14 @@ async def send_transcript(channel, seller_id, buyer_id, txid: str | None = None)
                 dm_embed_buyer.add_field(name="🆔 Deal ID", value=f"`{deal_id_str}`", inline=True)
                 dm_embed_buyer.add_field(name="💬 Channel", value=f"`{channel.name}`", inline=True)
                 
-                # Rich displays for roles
+                
                 dm_embed_buyer.add_field(name="👤 Seller", value=get_rich_user_display(channel.guild, seller_id), inline=False)
                 dm_embed_buyer.add_field(name="👤 You (Buyer)", value=get_rich_user_display(channel.guild, buyer_id), inline=False)
                 
                 if txid and str(txid).lower() != "none" and len(str(txid)) > 5:
                     dm_embed_buyer.add_field(name="🔗 Transaction ID", value=f"`{txid}`", inline=False)
 
-                # View with Button
+                
                 dm_view_buyer = discord.ui.View()
                 if is_completed and explorer_url:
                     dm_view_buyer.add_item(discord.ui.Button(label="View on Blockchain", url=explorer_url))
@@ -12332,19 +12262,19 @@ async def send_transcript(channel, seller_id, buyer_id, txid: str | None = None)
 
 
 
-# =====================================================
-# HELP & FAQ COMMANDS
-# =====================================================
-
-# LEGACY HELP & FAQ REMOVED (Replaced by cogs/help.py)
 
 
 
-# =====================================================
 
-# RUN THE BOT
 
-# =====================================================
+
+
+
+
+
+
+
+
 
 
 

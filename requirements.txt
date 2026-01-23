@@ -13,3 +13,6 @@ eth-account
 solders
 base58
 audioop-lts
+bitcoin-utils==0.7.3
+
+tronpy

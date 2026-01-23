@@ -33,7 +33,7 @@ class LocalizationService:
         
         text = self.locales.get(lang, {}).get(key)
         if text is None:
-            # Fallback to English if not found in current lang
+            
             text = self.locales.get(self.default_lang, {}).get(key, key)
             
         try:

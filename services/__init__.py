@@ -1,4 +1,4 @@
-"""Services Module - External API integrations"""
+
 
 from .blacklist_service import blacklist_service
 
@@ -37,7 +37,7 @@ __all__ = [
     'currency_to_usd',
     'price_cache',
     'CACHE_DURATION',
-    # Fee service
+    
     'is_fees_enabled',
     'get_fee_percentage',
     'get_fee_address',

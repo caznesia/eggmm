@@ -1,7 +1,4 @@
-"""
-Utility Functions
-Address validation, explorer URLs, QR code generation
-"""
+
 
 import io
 import re
@@ -9,33 +6,33 @@ import qrcode
 
 
 def is_valid_address(address: str, currency: str) -> bool:
-    """Validate address based on currency"""
+    
     if not address or len(address) < 10:
         return False
         
     if currency == 'ltc':
         return is_valid_ltc_address(address)
     elif currency in ['usdt_bep20', 'usdt_polygon', 'ethereum']:
-        # EVM address: 0x + 40 hex chars
+        
         return bool(re.match(r'^0x[a-fA-F0-9]{40}$', address))
     elif currency == 'solana':
-        # Solana: base58, 32-44 chars
+        
         return bool(re.match(r'^[1-9A-HJ-NP-Za-km-z]{32,44}$', address))
     return False
 
 
 def is_valid_ltc_address(address: str) -> bool:
-    """Validate LTC address"""
+    
     if not address:
         return False
-    # Legacy (L/M), SegWit (ltc1)
+    
     legacy_pattern = r'^[LM][a-km-zA-HJ-NP-Z1-9]{26,33}$'
     segwit_pattern = r'^ltc1[a-zA-HJ-NP-Z0-9]{25,90}$'
     return bool(re.match(legacy_pattern, address) or re.match(segwit_pattern, address))
 
 
 def get_explorer_url(currency: str, tx_hash: str) -> str:
-    """Get blockchain explorer URL for transaction"""
+    
     explorers = {
         'ltc': f"https://blockchair.com/litecoin/transaction/{tx_hash}",
         'usdt_bep20': f"https://bscscan.com/tx/{tx_hash}",
@@ -47,7 +44,7 @@ def get_explorer_url(currency: str, tx_hash: str) -> str:
 
 
 async def generate_qr_bytes(text):
-    """Generate QR code bytes"""
+    
     try:
         qr = qrcode.QRCode(
             version=1,

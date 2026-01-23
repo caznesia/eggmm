@@ -7,13 +7,11 @@ logger = logging.getLogger("AuditService")
 
 class AuditService:
     def log_action(self, action, user_id, target_id=None, details=None):
-        """
-        Log an action to the database asynchronously (fire and forget wrapper).
-        """
+        
         try:
-            # Since we are likely in an async context, ideally we run this in an executor or use asyncpg.
-            # However, our DBManager is sync. For now, running sync in the main thread for simplicity 
-            # as these are quick inserts. If performance suffers, we move to a thread.
+            
+            
+            
             self._log_sync(action, user_id, target_id, details)
         except Exception as e:
             logger.error(f"Failed to log action {action}: {e}")

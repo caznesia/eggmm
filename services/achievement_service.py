@@ -18,7 +18,7 @@ class AchievementService:
         }
 
     async def check_achievements(self, user_id, user_obj):
-        """Check and award achievements."""
+        
         if not user_obj:
             return
 
@@ -39,19 +39,19 @@ class AchievementService:
                 await self.notify_achievement(user_obj, ach)
 
     async def notify_achievement(self, user_obj, achievement_info):
-        """Send a premium achievement notification."""
+        
         embed = discord.Embed(
             title="🏆 ACHIEVEMENT UNLOCKED!",
             description=f"### {achievement_info['emoji']} {achievement_info['name']}\n*{achievement_info['desc']}*",
-            color=0xFFD700 # Gold
+            color=0xFFD700 
         )
         embed.set_footer(text="RainyDay MM | Keep trading to level up!")
         
         try:
             await user_obj.send(embed=embed)
         except:
-            # If DMs are closed, we could try sending in a channel if we had one, 
-            # but for now we'll just fail gracefully.
+            
+            
             pass
 
 achievement_service = AchievementService()

@@ -33,7 +33,7 @@ class Gamification(commands.Cog):
         current = stats['streak']
         highest = stats['highest_streak']
         
-        # Determine emoji based on streak length
+        
         emoji = "🔥" if current > 0 else "❄️"
         if current >= 7: emoji = "🎆"
         if current >= 30: emoji = "👑"
@@ -71,13 +71,13 @@ class Gamification(commands.Cog):
             color=0x5865F2
         )
         
-        # Display prioritized achievements
+        
         displayed_items = []
         for key, info in self.achievements_config.items():
             status = "✅" if key in unlocked else "🔒"
             displayed_items.append(f"{status} **{info['name']}**\n*{info['desc']}*")
         
-        # chunk items into fields to avoid length limits
+        
         for i in range(0, len(displayed_items), 3):
             chunk = "\n\n".join(displayed_items[i:i+3])
             embed.add_field(name="\u200b", value=chunk, inline=True)

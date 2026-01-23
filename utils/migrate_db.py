@@ -6,7 +6,7 @@ import psycopg2
 from psycopg2.extras import Json
 from typing import Dict, Any
 
-# Add project root to sys.path to allow imports
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from services.db_manager import db
@@ -24,12 +24,12 @@ def migrate_deals():
     with db.session() as conn:
         cursor = conn.cursor()
         for deal_id, info in data.items():
-            # Check if deal exists
+            
             cursor.execute("SELECT deal_id FROM deals WHERE deal_id = %s", (deal_id,))
             if cursor.fetchone():
                 continue
 
-            # Extract schema fields
+            
             channel_id = str(info.get("channel_id"))
             buyer = info.get("buyer")
             seller = info.get("seller")
@@ -37,11 +37,11 @@ def migrate_deals():
             currency = info.get("currency")
             created_at = info.get("start_time")
             
-            # Determine generic status
-            # If final embed sent, assume completed. 
+            
+            
             status = "completed" if info.get("amount_final_embed_sent") else "active"
 
-            # Prepare other data
+            
             schema_keys = {"deal_id", "channel_id", "buyer", "seller", "amount", "currency", "start_time"}
             other_data = {k: v for k, v in info.items() if k not in schema_keys}
             

@@ -19,17 +19,17 @@ class Health(commands.Cog):
 
     @tasks.loop(seconds=60)
     async def heartbeat_loop(self):
-        # Basic liveliness check
+        
         logger.info(f"HEARTBEAT: Bot active for {int(time.time() - self.start_time)}s. Latency: {self.bot.latency * 1000:.2f}ms")
 
     @app_commands.command(name="ping", description="Check bot health and latency")
     async def ping(self, interaction: discord.Interaction):
         await interaction.response.defer()
         
-        # 1. Discord Latency
+        
         latency = self.bot.latency * 1000
         
-        # 2. DB Health
+        
         db_status = "❌ Failed"
         try:
             with db.get_connection() as conn:
@@ -41,7 +41,7 @@ class Health(commands.Cog):
         except Exception as e:
             db_status = f"❌ Error: {str(e)}"
 
-        # 3. Uptime
+        
         uptime = int(time.time() - self.start_time)
         hours, remainder = divmod(uptime, 3600)
         minutes, seconds = divmod(remainder, 60)

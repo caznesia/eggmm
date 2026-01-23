@@ -23,10 +23,10 @@ class Tools(commands.Cog):
         self.check_tracked_transactions.cancel()
 
 
-    # --- Generic Balance Checker (BTC, LTC, ETH, SOL, USDT, etc.) ---
+    
 
     async def get_evm_balance(self, address, rpc_urls, token_contract=None, decimals=18):
-        """Fetch EVM stats: Balance, TX Count (Nonce)."""
+        
         stats = {
             'balance': 0.0,
             'unconfirmed': 0.0,
@@ -42,11 +42,11 @@ class Tools(commands.Cog):
 
                 check_addr = w3.to_checksum_address(address)
                 
-                # TX Count (Native Nonce)
+                
                 stats['total_tx'] = await w3.eth.get_transaction_count(check_addr)
 
                 if token_contract:
-                    # Token Balance
+                    
                     contract = w3.eth.contract(
                         address=w3.to_checksum_address(token_contract),
                         abi=config.USDT_ABI
@@ -54,18 +54,18 @@ class Tools(commands.Cog):
                     balance_raw = await contract.functions.balanceOf(check_addr).call()
                     stats['balance'] = balance_raw / (10 ** decimals)
                 else:
-                    # Native Balance
+                    
                     balance_wei = await w3.eth.get_balance(check_addr)
                     stats['balance'] = float(w3.from_wei(balance_wei, 'ether'))
                 
-                return stats # Success
+                return stats 
 
             except Exception as e:
                 continue
         return None
 
     async def get_sol_balance(self, address):
-        """Fetch SOL stats."""
+        
         stats = {
             'balance': 0.0,
             'unconfirmed': 0.0, 
@@ -80,14 +80,14 @@ class Tools(commands.Cog):
         for url in config.SOLANA_RPC_URLS:
             try:
                 async with aiohttp.ClientSession() as session:
-                    # Balance
+                    
                     async with session.post(url, json=payload, timeout=5) as r:
                          if r.status == 200:
                              data = await r.json()
                              if "result" in data:
                                  stats['balance'] = data["result"]["value"] / 1e9
                                  
-                                 # Try Last Active
+                                 
                                  try:
                                      p2 = {
                                          "jsonrpc": "2.0", "id": 2, 
@@ -107,7 +107,7 @@ class Tools(commands.Cog):
         return None
 
     async def get_btc_balance_public(self, address):
-        """Fetch BTC stats via public API."""
+        
         import aiohttp
         urls = [
             f"https://blockchain.info/rawaddr/{address}?limit=1",
@@ -126,7 +126,7 @@ class Tools(commands.Cog):
                                 'last_active': None
                             }
 
-                            # Blockchain.info
+                            
                             if "final_balance" in data: 
                                 stats['balance'] = data.get('final_balance', 0) / 1e8
                                 stats['total_tx'] = data.get('n_tx', 0)
@@ -135,7 +135,7 @@ class Tools(commands.Cog):
                                     stats['last_active'] = data['txs'][0].get('time')
                                 return stats
                             
-                            # Blockcypher
+                            
                             if "balance" in data: 
                                 stats['balance'] = data.get('balance', 0) / 1e8
                                 stats['unconfirmed'] = data.get('unconfirmed_balance', 0) / 1e8
@@ -148,7 +148,7 @@ class Tools(commands.Cog):
                                     latest = txs[0]
                                     if 'confirmed' in latest:
                                         try:
-                                            # format: 2021-08-26T15:24:43Z
+                                            
                                             dt = datetime.datetime.fromisoformat(latest['confirmed'].replace('Z', '+00:00'))
                                             stats['last_active'] = int(dt.timestamp())
                                         except: pass
@@ -159,11 +159,11 @@ class Tools(commands.Cog):
         return None
 
     async def get_ltc_balance_public(self, address):
-        """Fetch LTC stats via public API with fallbacks."""
+        
         import aiohttp
         session = await self.bot.get_session() if hasattr(self.bot, "get_session") else aiohttp.ClientSession()
         
-        # Sources in priority order
+        
         sources = [
             ("BlockCypher", f"https://api.blockcypher.com/v1/ltc/main/addrs/{address}?limit=1"),
             ("LitecoinSpace", f"https://litecoinspace.org/api/address/{address}")
@@ -231,12 +231,12 @@ class Tools(commands.Cog):
 
     @commands.command(name="usdtbal")
     async def usdtbal_legacy(self, ctx, address: str):
-        """Legacy alias for USDT (BSC) balance."""
+        
         await self.handle_balance(ctx, 'usdt_bep20', address)
 
     @commands.command(name="balance", aliases=["bal", "w", "wallet", "checkbal"])
     async def balance_prefix(self, ctx, currency: str, address: str = None, fiat: str = "usd"):
-        """Check Wallet Balance. Usage: ,bal <currency> <address> [fiat]"""
+        
         if address is None:
             await ctx.send("Usage: `,bal <currency> <address> [fiat]`")
             return
@@ -256,7 +256,7 @@ class Tools(commands.Cog):
             await source.response.defer()
             reply = source.followup.send
 
-        # Normalize
+        
         raw_currency = currency.lower()
         mapping = {
             'usdtbsc': 'usdt_bep20',
@@ -272,27 +272,27 @@ class Tools(commands.Cog):
         currency = mapping.get(raw_currency, raw_currency)
         fiat = fiat.lower()
         
-        # --- LOGIC ---
+        
         balance = None
         symbol = currency.upper()
         chain_name = currency.upper()
         
         try:
-            # 1. EVM (Native & Tokens)
+            
             if currency == 'eth':
                 balance = await self.get_evm_balance(address, config.ETH_RPC_URLS)
                 chain_name = "Ethereum"
                 symbol = "ETH"
-            elif currency == 'bnb' or currency == 'bsc': # Native BSC
+            elif currency == 'bnb' or currency == 'bsc': 
                 balance = await self.get_evm_balance(address, config.BEP20_RPC_URLS)
                 chain_name = "BSC"
                 symbol = "BNB"
-            elif currency == 'matic' or currency == 'polygon': # Native Polygon
+            elif currency == 'matic' or currency == 'polygon': 
                 balance = await self.get_evm_balance(address, config.POLYGON_RPC_URLS)
                 chain_name = "Polygon"
                 symbol = "MATIC"
             
-            # USDT Variants
+            
             elif currency == 'usdt_bep20':
                 balance = await self.get_evm_balance(address, config.BEP20_RPC_URLS, config.USDT_BEP20_CONTRACT, config.USDT_BEP20_DECIMALS)
                 chain_name = "BSC"
@@ -307,19 +307,19 @@ class Tools(commands.Cog):
                 chain_name = "Ethereum"
                 symbol = "USDT"
             
-            # 2. SOL
+            
             elif currency == 'sol':
                 balance = await self.get_sol_balance(address)
                 chain_name = "Solana"
                 symbol = "SOL"
             
-            # 3. BTC
+            
             elif currency == 'btc':
                 balance = await self.get_btc_balance_public(address)
                 chain_name = "Bitcoin"
                 symbol = "BTC"
             
-            # 4. LTC
+            
             elif currency == 'ltc':
                 balance = await self.get_ltc_balance_public(address)
                 chain_name = "Litecoin"
@@ -336,13 +336,13 @@ class Tools(commands.Cog):
             stats = balance
             confirmed_bal = stats['balance']
             
-            # Value Fiat
+            
             fiat_val = await currency_to_fiat(confirmed_bal + stats.get('unconfirmed', 0), currency, fiat)
             if fiat_val == "RATE_LIMIT":
                 await reply(localization_service.get("rate_limit_error", lang))
                 return
 
-            # Create Embed
+            
             title = localization_service.get("wallet_overview", lang, symbol=symbol, chain=chain_name)
             embed = discord.Embed(title=title, color=0x00FF00)
             
@@ -392,16 +392,16 @@ class Tools(commands.Cog):
 
 
 
-    # --- TX Checker (LTC, ETH, BSC, POLYGON, SOL, BTC) ---
+    
 
     async def get_ltc_tx(self, txid):
-        # Try Local RPC First
+        
         try:
              return await rpc_async("getrawtransaction", txid, 1)
         except Exception as e:
              logger.warning(f"LTC Local RPC Failed: {e}. Switching to Public API.")
         
-        # Fallback: Public API
+        
         import aiohttp
         urls = [
             ("LitecoinSpace", f"https://litecoinspace.org/api/tx/{txid}"),
@@ -415,7 +415,7 @@ class Tools(commands.Cog):
                     async with session.get(url, timeout=5) as r:
                          if r.status == 200:
                              data = await r.json()
-                             # Normalize data to resemble RPC 'getrawtransaction' verbose output
+                             
                              
                              if name == "LitecoinSpace":
                                  mapped = {
@@ -424,7 +424,7 @@ class Tools(commands.Cog):
                                      'time': data.get('status', {}).get('block_time', 0),
                                      'vout': []
                                  }
-                                 # Get confirmations
+                                 
                                  try:
                                      async with session.get("https://litecoinspace.org/api/blocks/tip/height", timeout=3) as r2:
                                          if r2.status == 200:
@@ -481,12 +481,12 @@ class Tools(commands.Cog):
                                   return mapped
 
                 except Exception as e:
-                    # logger.error(f"LTC Public API Error: {e}")
+                    
                     continue
         return None
 
     async def get_evm_tx(self, txid, rpc_urls):
-        """Fetch EVM transaction details with block info using AsyncWeb3."""
+        
         for rpc in rpc_urls:
             try:
                 w3 = AsyncWeb3(AsyncHTTPProvider(rpc, request_kwargs={"timeout": 5}))
@@ -497,7 +497,7 @@ class Tools(commands.Cog):
                 tx = await w3.eth.get_transaction(txid)
                 receipt = await w3.eth.get_transaction_receipt(txid)
                 
-                # Identify Block Number
+                
                 try:
                     b_num = receipt['blockNumber']
                 except:
@@ -508,9 +508,9 @@ class Tools(commands.Cog):
                 
                 block = None
                 if b_num is not None:
-                    # Try to fetch block timestamp quickly
+                    
                     try:
-                        # Inject POA middleware for block fetching (web3.py v7+)
+                        
                         try:
                             from web3.middleware import ExtraDataToPOAMiddleware
                             w3.middleware_onion.inject(ExtraDataToPOAMiddleware, layer=0)
@@ -531,7 +531,7 @@ class Tools(commands.Cog):
         return None, None, None, None
 
     async def get_solana_tx(self, txid):
-        """Fetch Solana transaction details."""
+        
         import aiohttp
         payload = {
             "jsonrpc": "2.0",
@@ -554,11 +554,11 @@ class Tools(commands.Cog):
                 continue
         return None
 
-    # Helper for BTC (Using public API as fallback since no RPC config)
+    
     async def get_btc_tx_public(self, txid):
         import aiohttp
-        # Trying BlockCypher (free tier limits) or similar
-        # Fallback to blockchain.info which is often open
+        
+        
         urls = [
             f"https://blockchain.info/rawtx/{txid}",
             f"https://api.blockcypher.com/v1/btc/main/txs/{txid}"
@@ -576,7 +576,7 @@ class Tools(commands.Cog):
 
     @commands.command(name="tx", aliases=["t", "trans", "hash", "checktx"])
     async def tx_prefix(self, ctx, currency: str, txid: str = None, fiat: str = "usd"):
-        """Check transaction details. Usage: =tx <currency> <txid> [fiat]"""
+        
         if txid is None:
              await ctx.send("Usage: `=tx <currency> <txid> [fiat]`")
              return
@@ -599,7 +599,7 @@ class Tools(commands.Cog):
         currency = currency.lower()
         fiat = fiat.lower()
         
-        # Normalize synonyms
+        
         mapping = {
             'usdtbsc': 'usdt_bep20',
             'usdtpol': 'usdt_polygon',
@@ -615,7 +615,7 @@ class Tools(commands.Cog):
         }
         currency = mapping.get(currency, currency)
 
-        # "usdt" generic handler defaults to BSC
+        
         if currency == 'usdt':
             currency = 'usdt_bep20'
 
@@ -623,7 +623,7 @@ class Tools(commands.Cog):
             embed = None
             logger.info(f"Checking {currency} TX: {txid}")
             
-            # --- LTC ---
+            
             if currency == 'ltc':
                 tx_data = await self.get_ltc_tx(txid)
                 if not tx_data:
@@ -639,7 +639,7 @@ class Tools(commands.Cog):
                 inf_text = f"• **{localization_service.get('total_amount', lang)}** `{total_out:.8f} LTC`\n"
                 inf_text += f"    ◦ {localization_service.get('approximate_value', lang)} `{val_fiat:,.2f} {fiat.upper()}`\n"
                 
-                # Timestamp
+                
                 ts = tx_data.get('time', 0)
                 if ts:
                     inf_text += f"• **{localization_service.get('created_at', lang)}** <t:{ts}:R>\n"
@@ -653,11 +653,11 @@ class Tools(commands.Cog):
                 
                 embed.add_field(name=localization_service.get("information_header", lang), value=inf_text, inline=False)
                 
-                # Outputs
+                
                 vout = tx_data.get('vout', [])
                 out_header = localization_service.get("outputs_label", lang, count=len(vout))
                 out_text = ""
-                for i, out in enumerate(vout[:5]): # Show up to 5
+                for i, out in enumerate(vout[:5]): 
                     val = out.get('value', 0)
                     val_fiat_out = await currency_to_fiat(val, 'ltc', fiat)
                     addrs = out.get('scriptPubKey', {}).get('addresses', [])
@@ -671,7 +671,7 @@ class Tools(commands.Cog):
                 if out_text:
                     embed.add_field(name=out_header, value=out_text, inline=False)
                 
-                # Immediate reply for LTC
+                
                 url = self.get_explorer_link('ltc', txid)
                 view = discord.ui.View(timeout=180)
                 if url:
@@ -684,16 +684,16 @@ class Tools(commands.Cog):
                 return
 
 
-            # --- BTC ---
+            
             elif currency == 'btc':
                 tx_data = await self.get_btc_tx_public(txid)
                 if not tx_data:
                     await reply(localization_service.get("tx_not_found", lang, chain="Bitcoin"))
                     return
                 
-                # Identify if blockchain.info or blockcypher
-                # blockchain.info uses 'out' -> 'value' (satoshis)
-                # blockcypher uses 'outputs' -> 'value' (satoshis)
+                
+                
+                
                 
                 total_sats = 0
                 outputs = tx_data.get('out', tx_data.get('outputs', []))
@@ -707,15 +707,15 @@ class Tools(commands.Cog):
                     await reply(localization_service.get("rate_limit_error", lang))
                     return
                 
-                # Confirmations
-                # blockchain.info might not show confs directly in rawtx sometimes? It usually does 'block_height'.
-                # blockcypher shows 'confirmations'.
+                
+                
+                
                 confs = tx_data.get('confirmations', "Unknown")
                 
                 inf_text = f"• **{localization_service.get('total_amount', lang)}** `{total_btc:.8f} BTC`\n"
                 inf_text += f"    ◦ {localization_service.get('approximate_value', lang)} `{val_fiat:,.2f} {fiat.upper()}`\n"
                 
-                # Time
+                
                 ts = tx_data.get('time', 0)
                 if ts:
                     inf_text += f"• **{localization_service.get('created_at', lang)}** <t:{ts}:R>\n"
@@ -729,7 +729,7 @@ class Tools(commands.Cog):
                 
                 embed.add_field(name=localization_service.get("information_header", lang), value=inf_text, inline=False)
 
-                # Outputs
+                
                 outputs = tx_data.get('out', tx_data.get('outputs', []))
                 out_header = localization_service.get("outputs_label", lang, count=len(outputs))
                 out_text = ""
@@ -746,7 +746,7 @@ class Tools(commands.Cog):
                 if out_text:
                     embed.add_field(name=out_header, value=out_text, inline=False)
 
-                # Immediate reply for BTC
+                
                 url = self.get_explorer_link('btc', txid)
                 view = discord.ui.View(timeout=180)
                 if url:
@@ -759,17 +759,17 @@ class Tools(commands.Cog):
                 return
 
 
-            # --- EVM (ETH, BSC, Polygon) ---
+            
             elif currency in ['eth', 'usdt_erc20', 'usdt_bep20', 'usdt_polygon', 'bnb', 'matic']:
                 
-                # Determine Chain
+                
                 if currency == 'eth' or currency == 'usdt_erc20':
                     rpc_urls = config.ETH_RPC_URLS
                     native_sym = "ETH"
                     chain_name = "Ethereum"
                     color = 0x627EEA
                     usdt_contract = "0xdAC17F958D2ee523a2206206994597C13D831ec7" 
-                    decimals = 6 # USDT ERC20 is 6 decimals
+                    decimals = 6 
                     
                 elif currency in ['usdt_bep20', 'bnb']:
                     rpc_urls = config.BEP20_RPC_URLS
@@ -777,7 +777,7 @@ class Tools(commands.Cog):
                     chain_name = "BSC"
                     color = 0xF3BA2F
                     usdt_contract = config.USDT_BEP20_CONTRACT
-                    decimals = config.USDT_BEP20_DECIMALS # 18
+                    decimals = config.USDT_BEP20_DECIMALS 
                     
                 elif currency in ['usdt_polygon', 'matic']:
                     rpc_urls = config.POLYGON_RPC_URLS
@@ -785,7 +785,7 @@ class Tools(commands.Cog):
                     chain_name = "Polygon"
                     color = 0x8247E5
                     usdt_contract = config.USDT_POLYGON_CONTRACT
-                    decimals = config.USDT_POLYGON_DECIMALS # 6
+                    decimals = config.USDT_POLYGON_DECIMALS 
 
                 logger.info(f"Fetching EVM TX from RPCs for {chain_name}...")
                 res = await self.get_evm_tx(txid, rpc_urls)
@@ -796,7 +796,7 @@ class Tools(commands.Cog):
                 tx, receipt, w3, block = res
                 logger.info(f"Found TX. Sender: {tx['from']} Receiver: {tx['to']}")
 
-                # Initial Time Fetch
+                
                 time_str = "Unknown"
                 if block:
                     try: 
@@ -806,14 +806,14 @@ class Tools(commands.Cog):
                         time_str = f"<t:{ts}:f> (<t:{ts}:R>)"
                     except: pass
 
-                # Sender/Receiver
+                
                 sender = tx['from']
                 receiver = tx['to']
                 
-                # Check Native Value
+                
                 val_native = float(w3.from_wei(tx['value'], 'ether'))
                 
-                # Check Token Logs (USDT etc)
+                
                 token_val = 0.0
                 is_token_tx = False
                 found_token_sym = "USDT"
@@ -855,10 +855,10 @@ class Tools(commands.Cog):
 
                 logger.info(f"Starting LIVE MONITORING loop for {txid}")
                 live_msg = None
-                max_retries = 10 # ~1 minute of auto-updates (6s per loop)
+                max_retries = 10 
                 
                 for attempt in range(max_retries):
-                    # Re-fetch latest block for confirmations
+                    
                     confs = 0
                     current_block = 0
                     try:
@@ -867,7 +867,7 @@ class Tools(commands.Cog):
                             confs = max(0, current_block - receipt['blockNumber'] + 1)
                     except: pass
 
-                    # Re-fetch timestamp if unknown
+                    
                     if time_str == "Unknown" or not time_str:
                         try:
                             b_num = None
@@ -889,7 +889,7 @@ class Tools(commands.Cog):
                                     except: continue
                         except: pass
 
-                    # Prepare Status String
+                    
                     if receipt['status'] == 1:
                         target = 6 if currency in ['matic', 'bnb'] else 2
                         if confs >= target:
@@ -907,39 +907,39 @@ class Tools(commands.Cog):
                     embed.add_field(name=localization_service.get("to", lang), value=f"`{receiver}`", inline=False)
                     embed.add_field(name=localization_service.get("block", lang), value=f"`{receipt['blockNumber']}`", inline=True)
                     
-                    # Common fields
+                    
                     requester = source.user.mention if isinstance(source, discord.Interaction) else source.author.mention
                     embed.set_footer(text=localization_service.get("requested_by", lang, user=requester).replace(requester, str(source.user if isinstance(source, discord.Interaction) else source.author)))
                     
-                    # Buttons
+                    
                     url = self.get_explorer_link(currency, txid)
                     view = discord.ui.View(timeout=180)
                     if url:
                         view.add_item(discord.ui.Button(label=localization_service.get("view_on_blockchain", lang), url=url))
                     
-                    # Send or Edit
+                    
                     if not live_msg:
                         live_msg = await reply(embed=embed, view=view)
                     else:
                         try: await live_msg.edit(embed=embed, view=view)
-                        except: break # Message deleted
+                        except: break 
 
-                    # If confirmed, stop loop early
+                    
                     if receipt['status'] == 0 or (confs >= (6 if currency in ['matic', 'bnb'] else 2)):
                         break
                     
-                    await asyncio.sleep(6) # Poll every 6 seconds
+                    await asyncio.sleep(6) 
 
-                return # End handle_tx
+                return 
 
         except Exception as e:
             logger.error(f"TX Check Error: {e}")
-            # Try to send final error if msg was never sent
+            
             try: await reply(localization_service.get("error_checking_tx", lang, error=str(e)))
             except: pass
 
     def get_explorer_link(self, currency, txid):
-        """Generate explorer URL."""
+        
         c = currency.lower()
         if c == 'ltc':
             return f"https://live.blockcypher.com/ltc/tx/{txid}/"
@@ -961,7 +961,7 @@ class Tools(commands.Cog):
     )
     @app_commands.autocomplete(currency=currency_autocomplete)
     async def track_transaction(self, interaction: discord.Interaction, txid: str, currency: str, confirmations: int = 1):
-        """Admin only command to track a transaction."""
+        
         if interaction.user.id not in config.OWNER_IDS:
             await interaction.response.send_message("❌ You are not authorized to use this command.", ephemeral=True)
             return
@@ -969,7 +969,7 @@ class Tools(commands.Cog):
         txid = txid.strip()
         currency = currency.lower()
         
-        # Normalize
+        
         mapping = {
             'usdtbsc': 'usdt_bep20',
             'usdtpol': 'usdt_polygon',
@@ -1001,7 +1001,7 @@ class Tools(commands.Cog):
 
     @tasks.loop(minutes=1)
     async def check_tracked_transactions(self):
-        """Background task to monitor confirmations for tracked transactions."""
+        
         pending = tracking_service.get_all_pending_tracking()
         if not pending:
             return
@@ -1015,7 +1015,7 @@ class Tools(commands.Cog):
                 
                 confs = 0
                 
-                # Check based on currency
+                
                 if currency == 'ltc':
                     tx_data = await self.get_ltc_tx(txid)
                     confs = tx_data.get('confirmations', 0) if tx_data else 0
@@ -1023,14 +1023,14 @@ class Tools(commands.Cog):
                     tx_data = await self.get_btc_tx_public(txid)
                     confs = tx_data.get('confirmations', 0) if tx_data else 0
                 elif currency in ['eth', 'usdt_erc20', 'usdt_bep20', 'usdt_polygon', 'bnb', 'matic']:
-                    # EVM
+                    
                     rpc_urls = []
                     if currency in ['eth', 'usdt_erc20']: rpc_urls = config.ETH_RPC_URLS
                     elif currency in ['usdt_bep20', 'bnb']: rpc_urls = config.BEP20_RPC_URLS
                     elif currency in ['usdt_polygon', 'matic']: rpc_urls = config.POLYGON_RPC_URLS
                     
                     res = await self.get_evm_tx(txid, rpc_urls)
-                    if res and res[1]: # receipt
+                    if res and res[1]: 
                         receipt = res[1]
                         w3 = res[2]
                         current_block = await w3.eth.block_number
@@ -1038,15 +1038,15 @@ class Tools(commands.Cog):
                 elif currency == 'sol':
                     tx_data = await self.get_solana_tx(txid)
                     if tx_data:
-                        # Solana doesn't really have "confirmations" in the same way, but it has 'slot'
-                        # For simplicity, if it's found and successful, we'll treat it as confirmed
-                        # Or check meta['err'] is None
+                        
+                        
+                        
                         meta = tx_data.get('meta')
                         if meta and meta.get('err') is None:
-                            confs = target # Instant confirm for Solana tracking in this context
+                            confs = target 
                 
                 if confs >= target:
-                    # Notify User
+                    
                     try:
                         user = await self.bot.fetch_user(int(user_id))
                         if user:
@@ -1069,7 +1069,7 @@ class Tools(commands.Cog):
                     except Exception as e:
                         logger.error(f"Failed to notify user {user_id}: {e}")
                     
-                    # Mark as completed
+                    
                     tracking_service.update_tracking_status(track['id'], 'completed')
                     
             except Exception as e:
@@ -1078,10 +1078,10 @@ class Tools(commands.Cog):
     @app_commands.command(name="search", description="Intelligently search for any address or transaction ID")
     @app_commands.describe(query="The address or TXID search for")
     async def search_slash(self, interaction: discord.Interaction, query: str):
-        """Universal search for addresses and TXIDs."""
+        
         query = query.strip()
         
-        # Regex patterns
+        
         patterns = {
             'evm_addr': r'^0x[a-fA-F0-9]{40}$',
             'evm_tx': r'^0x[a-fA-F0-9]{64}$',
@@ -1091,7 +1091,7 @@ class Tools(commands.Cog):
             'generic_tx': r'^[a-fA-F0-9]{64}$'
         }
 
-        # Detection logic
+        
         if re.match(patterns['evm_addr'], query):
              await self.handle_balance(interaction, "eth", query)
              return

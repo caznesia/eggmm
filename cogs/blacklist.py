@@ -10,7 +10,7 @@ class Blacklist(commands.Cog):
         self.bot = bot
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
-        # Global check for application commands
+        
         if blacklist_service.is_blacklisted(interaction.user.id):
             embed = discord.Embed(title="You are blacklisted from our services!", description="Appeal this in <#1428193038588579880>", color=discord.Color.red())
             await interaction.response.send_message(embed=embed, ephemeral=True)
@@ -29,9 +29,9 @@ class Blacklist(commands.Cog):
         app_commands.Choice(name="Check", value="check")
     ])
     async def blacklist(self, interaction: discord.Interaction, action: app_commands.Choice[str], user: discord.User, reason: str = None):
-        # Admin check
+        
         if interaction.user.id not in config.OWNER_IDS:
-            # You might want to add a role check here too
+            
             await interaction.response.send_message("❌ You are not authorized to use this command.", ephemeral=True)
             return
 

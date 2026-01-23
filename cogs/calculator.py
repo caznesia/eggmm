@@ -14,7 +14,7 @@ class Calculator(commands.Cog):
             'sol': 'solana', 'solana': 'solana',
             'usdt': 'usdt_bep20', 'tether': 'usdt_bep20', 'usdtpol': 'usdt_polygon', 'usdtbep': 'usdt_bep20'
         }
-        self.blacklist = ["nigga", "nigger", "faggot", "tranny", "retard"] # Basic professional filter
+        self.blacklist = ["nigga", "nigger", "faggot", "tranny", "retard"] 
 
     def _normalize_currency(self, currency: str):
         c = currency.lower().replace(" ", "").replace("_", "")
@@ -69,18 +69,18 @@ class Calculator(commands.Cog):
 
         embed = discord.Embed(color=0x3498db)
         
-        # Determine actual mode string if it's a Choice object or raw string (just in case)
+        
         mode_val = mode.value if hasattr(mode, 'value') else mode
 
         if mode_val == "to_usd":
-            # Crypto -> USD
+            
             result = amount * price
             embed.title = "🔄 Crypto to USD Conversion"
             embed.add_field(name=f"Amount ({curr.upper()})", value=f"{amount:,.8f}", inline=True)
             embed.add_field(name="Rate", value=f"${price:,.2f}", inline=True)
             embed.add_field(name="Result (USD)", value=f"**${result:,.2f}**", inline=False)
         else:
-            # USD -> Crypto
+            
             result = amount / price
             embed.title = "🔄 USD to Crypto Conversion"
             embed.add_field(name="Amount (USD)", value=f"${amount:,.2f}", inline=True)

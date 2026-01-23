@@ -7,7 +7,7 @@ class Referral(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    # Create a group for /referral commands
+    
     referral_group = app_commands.Group(name="referral", description="Referral system commands")
 
     @referral_group.command(name="code", description="Get your unique referral code")
