@@ -8,12 +8,23 @@ class LocalizationService:
     def __init__(self):
         self.default_lang = "en"
         self.locales = {}
+        self.lang_map = {
+            "english": "en",
+            "hindi": "hi",
+            "hinglish": "hinglish",
+            "russian": "ru",
+            "spanish": "es",
+            "french": "fr",
+            "chinese": "zh-cn",
+            "turkish": "tr"
+        }
         self.load_locales()
     
     def load_locales(self):
-        locales_path = "locales"
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        locales_path = os.path.join(base_dir, "locales")
         if not os.path.exists(locales_path):
-            logger.warning("Locales directory not found.")
+            logger.warning(f"Locales directory not found: {locales_path}")
             return
 
         for filename in os.listdir(locales_path):
@@ -25,15 +36,18 @@ class LocalizationService:
                     logger.info(f"Loaded locale: {lang}")
                 except Exception as e:
                     logger.error(f"Failed to load locale {lang}: {e}")
-
-    def get(self, key, lang="en", **kwargs):
-        lang = lang.lower() if lang else self.default_lang
-        if lang not in self.locales:
-            lang = self.default_lang
-        
-        text = self.locales.get(lang, {}).get(key)
-        if text is None:
             
+    def get(self, key, lang="en", **kwargs):
+        # Handle full names like "English" or "Spanish"
+        lang = lang.lower() if lang else self.default_lang
+        lang_code = self.lang_map.get(lang, lang)
+        
+        if lang_code not in self.locales:
+            lang_code = self.default_lang
+        
+        text = self.locales.get(lang_code, {}).get(key)
+        if text is None:
+            # Fallback to English
             text = self.locales.get(self.default_lang, {}).get(key, key)
             
         try:
